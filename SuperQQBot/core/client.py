@@ -4,11 +4,12 @@ import json
 import websockets
 from dateutil import parser
 
-from .Error import InvalidIntentsError
-from .api import WebSocketAPI, Token
+from .Error import InvalidIntentsError, ExecutionSequenceError
+from .api import WebSocketAPI, Token, GuildManagementApi, BotAPI
 from .connection import get_authorization
-from .log import get_logger
 from .types import *
+from .logging import get_logger
+
 
 _log = get_logger()
 
@@ -27,41 +28,46 @@ class Intents:
         'AUDIO_ACTION',
         'PUBLIC_GUILD_MESSAGES',
     }
+
+    DEFAULT_VALUE = 0
+
     old_flags = {
         "public_messages": 'GROUP_AND_C2C_EVENT'
     }
-
-    DEFAULT_VALUE = 0
 
     def __init__(self, **kwargs: bool) -> None:
         self.value: int = self.DEFAULT_VALUE
         self.intents = {flag: False for flag in self.VALID_FLAGS}
         for key, value in kwargs.items():
             if key in self.old_flags:
-                _log.warning("你正在使用旧版的（QQBot-py）的Intents请切换。")
-                _log.warning(f"你使用的Intents对应的新版Intents为{self.old_flags[key]}")
+                warnings.warn(CompatibilityWillBeUnSuppose(key, self.old_flags[key]))
                 self.intents[self.old_flags[key]] = value
                 continue
             if key not in self.VALID_FLAGS:
                 raise TypeError(f"{key!r} 是无效的标志名称。")
             self.intents[key] = value
-
         self._update_bitwise_value()
 
-    def all(self):
+
+    @classmethod
+    def all(cls):
         """ 订阅所有事件 """
+        self = cls.none()
         for key in self.VALID_FLAGS:
             self.intents[key] = True
         self._update_bitwise_value()
-
-    def none(self):
+        return self
+    @classmethod
+    def none(cls):
         """ 不订阅任何事件 """
-        for key in self.VALID_FLAGS:
-            self.intents[key] = False
+        self = cls()
+        self.value = self.DEFAULT_VALUE
         self._update_bitwise_value()
-
-    def default(self):
+        return self
+    @classmethod
+    def default(cls):
         """ 默认订阅所有公域事件 """
+        self = cls.none()
         self.intents['GUILDS'] = True
         self.intents['GUILD_MEMBERS'] = True
         self.intents['PUBLIC_GUILD_MESSAGES'] = True
@@ -73,6 +79,7 @@ class Intents:
             self._update_bitwise_value()
         else:
             raise TypeError(f"{intent_name!r} 是无效的标志名称。")
+
 
     def _update_bitwise_value(self):
         bitwise_intents = 0
@@ -94,6 +101,9 @@ class Intents:
     _PUBLIC_GUILD_MESSAGES_BIT = 1 << 30
 
 
+
+
+
 class Client:
     def __init__(self, intents, is_sandbox=False):
         if not isinstance(intents, Intents):
@@ -110,6 +120,16 @@ class Client:
         self.d = None
         self.token = None
 
+    @property
+    def robot(self):
+        if self.token is None:
+            raise ExecutionSequenceError("Client.run()获取AccessToken", "Client.robot获取机器人信息")
+        else:
+            return GuildManagementApi(self.token, self.is_sandbox).me()
+    @property
+    def api(self):
+        return BotAPI(self.token, self.is_sandbox)
+
     def run(self, appid, secret):
         self.token = Token(appid, secret).get_access_token()
         self.websocket_api = WebSocketAPI(self.token, is_sandbox=self.is_sandbox)
@@ -124,12 +144,11 @@ class Client:
         if self.wss_url is None:
             self.wss_url = await self.websocket_api.get_wss_url()
 
-        try:
-            self.ws = await websockets.connect(self.wss_url)
-            _log.info(f"已连接到WebSocket服务器: {self.wss_url}")
-            await self.handle_messages()
-        except Exception as e:
-            _log.error(f"连接到WebSocket服务器失败: {e}")
+
+        self.ws = await websockets.connect(self.wss_url)
+        _log.info(f"已连接到WebSocket服务器: {self.wss_url}")
+        await self.handle_messages()
+
 
     async def identify(self):
         """ 发送Identify消息进行鉴权 """
@@ -503,65 +522,157 @@ class Client:
         """ 处理Ready事件 """
         _log.info("已准备好接收事件。")
 
-    async def on_message_create(self, data):
-        """机器人私域频道消息"""
-        _log.info(f"收到新消息: {data}")
+    # GUILD_MEMBERS 事件
+    async def on_guild_member_add(self, member: Member):
+        """当成员加入时"""
+        _log.info(f"用户 {member.user_name} 加入了频道 {member.guild.name}")
 
-    async def on_at_message_create(self, data):
-        """ 处理消息创建事件 """
-        _log.info(f"收到新消息: {data}")
+    async def on_guild_member_update(self, before: Member, after: Member):
+        """当成员资料变更时"""
+        _log.info(f"用户 {after.user_name} 在频道 {after.guild.name} 的资料已更新")
 
-    async def on_message_update(self, data):
-        """ 处理消息更新事件 """
-        _log.info(f"收到消息更新: {data}")
+    async def on_guild_member_remove(self, member: Member):
+        """当成员被移除时"""
+        _log.info(f"用户 {member.user_name} 已从频道 {member.guild.name} 中移除")
 
-    async def on_public_message_delete(self, data):
-        """ 处理消息删除事件 """
-        _log.info(f"收到消息删除: {data}")
+    # GUILD_MESSAGES 事件
+    async def on_message_create(self, message: Message):
+        """发送消息事件，代表频道内的全部消息，而不只是 at 机器人的消息。内容与 AT_MESSAGE_CREATE 相同"""
+        _log.info(f"消息 {message.content} 在频道 {message.channel.guild.name} 创建")
 
-    async def on_guild_member_add(self, data):
-        """ 处理成员加入事件 """
-        _log.info(f"成员加入: {data}")
+    async def on_message_delete(self, message: Message):
+        """删除（撤回）消息事件"""
+        _log.info(f"消息 {message.content} 在频道 {message.channel.guild.name} 被删除")
 
-    async def on_guild_member_remove(self, data):
-        """ 处理成员离开事件 """
-        _log.info(f"成员离开: {data}")
+    # GUILD_MESSAGE_REACTIONS 事件
+    async def on_message_reaction_add(self, reaction: Reaction):
+        """为消息添加表情表态"""
+        _log.info(f"表情 {reaction.emoji} 被添加到消息 {reaction.message_id}")
 
-    async def on_guild_create(self, data):
-        """ 处理群组创建事件 """
-        _log.info(f"群组创建: {data}")
+    async def on_message_reaction_remove(self, reaction: Reaction):
+        """为消息删除表情表态"""
+        _log.info(f"表情 {reaction.emoji} 从消息 {reaction.message_id} 中移除")
 
-    async def on_guild_delete(self, data):
-        """ 处理群组删除事件 """
-        _log.info(f"群组删除: {data}")
+    # DIRECT_MESSAGE 事件
+    async def on_direct_message_create(self, message: DirectMessage):
+        """当收到用户发给机器人的私信消息时"""
+        _log.info(f"收到私信消息：{message.content}")
 
-    async def on_interaction(self, data):
-        """ 处理交互事件 """
-        _log.info(f"交互事件: {data}")
+    async def on_direct_message_delete(self, message: DirectMessage):
+        """删除（撤回）消息事件"""
+        _log.info(f"私信消息 {message.content} 被删除")
 
-    async def on_group_at_message_create(self, data):
-        """处理群聊消息创建事件"""
-        _log.info(f"群聊消息：{data}")
+    # GROUP_AND_C2C_EVENT 事件
+    async def on_c2c_message_create(self, message: C2CMessage):
+        """用户单聊发消息给机器人时候"""
+        _log.info(f"用户 {message.sender} 发送了单聊消息：{message.content}")
 
-    async def on_group_add_robot(self, data):
+    async def on_friend_add(self, user: User):
+        """用户添加使用机器人"""
+        _log.info(f"用户 {user.name} 添加了机器人作为好友")
+
+    async def on_friend_del(self, user: User):
+        """用户删除机器人"""
+        _log.info(f"用户 {user.name} 删除了机器人")
+
+    async def on_c2c_msg_reject(self, user: User):
+        """用户在机器人资料卡手动关闭'主动消息'推送"""
+        _log.info(f"用户 {user.name} 关闭了主动消息推送")
+
+    async def on_c2c_msg_receive(self, user: User):
+        """用户在机器人资料卡手动开启'主动消息'推送开关"""
+        _log.info(f"用户 {user.name} 开启了主动消息推送")
+
+    async def on_group_at_message_create(self, message: GroupMessage):
+        """用户在群里@机器人时收到的消息"""
+        _log.info(f"用户 {message.author} 在群 {message.group.name} @了机器人：{message.content}")
+
+    async def on_group_add_robot(self, group: Group):
         """机器人被添加到群聊"""
-        _log.info(f"添加到群聊：{data}")
+        _log.info(f"机器人被添加到群聊 {group.name}")
 
-    async def on_forum_thread_create(self, thread: Thread):
-        """
-        当用户创建主题时
-        """
-        _log.info(f"收到新主题: {thread}")
+    async def on_group_del_robot(self, group: Group):
+        """机器人被移出群聊"""
+        _log.info(f"机器人被移出群聊 {group.name}")
 
-    async def on_forum_thread_update(self, thread: Thread):
-        """
-        当用户更新主题时
-        """
-        _log.info(f"主题更新: {thread}")
+    async def on_group_msg_reject(self, group: Group):
+        """群管理员主动在机器人资料页操作关闭通知"""
+        _log.info(f"群 {group.name} 关闭了机器人通知")
 
-    async def on_forum_thread_delete(self, thread: Thread):
-        """
-        当用户删除主题时
-        """
-        _log.info(f"主题删除: {thread}")
+    async def on_group_msg_receive(self, group: Group):
+        """群管理员主动在机器人资料页操作开启通知"""
+        _log.info(f"群 {group.name} 开启了机器人通知")
+
+    # INTERACTION 事件
+    async def on_interaction_create(self, interaction: Interaction):
+        """互动事件创建时"""
+        _log.info(f"互动事件 {interaction.type} 创建")
+
+    # MESSAGE_AUDIT 事件
+    async def on_message_audit_pass(self, message: MessageAudit):
+        """消息审核通过"""
+        _log.info(f"消息 {message.content} 审核通过")
+
+    async def on_message_audit_reject(self, message: MessageAudit):
+        """消息审核不通过"""
+        _log.info(f"消息 {message.content} 审核未通过")
+
+    # FORUMS_EVENT 事件
+    async def on_forum_thread_create(self, thread: ForumThread):
+        """当用户创建主题时"""
+        _log.info(f"用户创建了主题 {thread.title}")
+
+    async def on_forum_thread_update(self, thread: ForumThread):
+        """当用户更新主题时"""
+        _log.info(f"用户更新了主题 {thread.title}")
+
+    async def on_forum_thread_delete(self, thread: ForumThread):
+        """当用户删除主题时"""
+        _log.info(f"用户删除了主题 {thread.title}")
+
+    async def on_forum_post_create(self, post: ForumPost):
+        """当用户创建帖子时"""
+        _log.info(f"用户创建了帖子 {post.title}")
+
+    async def on_forum_post_delete(self, post: ForumPost):
+        """当用户删除帖子时"""
+        _log.info(f"用户删除了帖子 {post.title}")
+
+    async def on_forum_reply_create(self, reply: ForumReply):
+        """当用户回复评论时"""
+        _log.info(f"用户回复了评论 {reply.content}")
+
+    async def on_forum_reply_delete(self, reply: ForumReply):
+        """当用户回复评论时"""
+        _log.info(f"用户删除了评论 {reply.content}")
+
+    async def on_forum_publish_audit_result(self, publish: ForumPublishAudit):
+        """当用户发表审核通过时"""
+        _log.info(f"用户发表的 {publish.post_title} 审核通过")
+
+    # AUDIO_ACTION 事件
+    async def on_audio_start(self, audio: AudioAction):
+        """音频开始播放时"""
+        _log.info(f"音频开始播放：{audio.url}")
+
+    async def on_audio_finish(self, audio: AudioAction):
+        """音频播放结束时"""
+        _log.info(f"音频播放结束：{audio.url}")
+
+    async def on_audio_on_mic(self, audio: AudioAction):
+        """上麦时"""
+        _log.info(f"用户上麦：{audio.user}")
+
+    async def on_audio_off_mic(self, audio: AudioAction):
+        """下麦时"""
+        _log.info(f"用户下麦：{audio.user}")
+
+    # PUBLIC_GUILD_MESSAGES 事件
+    async def on_at_message_create(self, message: Message):
+        """当收到@机器人的消息时"""
+        _log.info(f"@机器人消息：{message.content}")
+
+    async def on_public_message_delete(self, message: PublicMessage):
+        """当频道的消息被删除时"""
+        _log.info(f"频道消息 {message.content} 被删除")
 

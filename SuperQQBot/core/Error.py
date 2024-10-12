@@ -44,3 +44,23 @@ class InvalidIntentsError(Exception):
     def __str__(self):
         return ("无效的意图配置，请检查您的intents设置\n"
                 f"Server_response : {self.response}")
+
+class ExecutionSequenceError(Exception):
+    def __init__(self, should_do_first, but_user_do_first):
+        super().__init__(should_do_first, but_user_do_first)
+        self.do_first = should_do_first
+        self.do_secondly = but_user_do_first
+
+    def __str__(self):
+        return f"执行顺序有误，应当先执行{self.do_first}然后再执行{self.do_secondly}，但事实上是先执行了{self.do_secondly}"
+class CompatibilityWillBeUnSuppose(Warning):
+    def __init__(self, old_version, new_version):
+        super().__init__(old_version, new_version)
+        self.old_version = old_version
+        self.new_version = new_version
+
+    def __str__(self):
+        return f"平替拓展支持模块提醒：你正在使用可能被放弃支持QQBotPy方法，为了保证您程序的稳定性，请将{self.old_version}替换为{self.new_version}"
+class UsingCompatibilityMode(Warning):
+    def __str__(self):
+        return "虽然兼容性设置可以解决大部分问题，但不代表兼容性设置是可被接受的。由于技术原因，部分兼容性设置可能导致无法正常运行"

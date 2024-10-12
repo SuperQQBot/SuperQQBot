@@ -23,7 +23,7 @@ class BaseConnect:
         if not isinstance(url, str):
             url = "https://sandbox.api.sgroup.qq.com" \
                 if url else "https://api.sgroup.qq.com/"
-        self.url = url + function
+        self.url = (url if not url.endswith("/") else url[:-1]) + function
         self.access_token = access_token
     def is_error(self) -> bool:
         return self.response.status_code != 200 or "err_code" in self.response.json()
@@ -60,7 +60,7 @@ class BaseConnect:
             return None
 
 class PostConnect(BaseConnect):
-    @overload
+    """@overload
     def __init__(self, function: str, json: dict, access_token: str, url: bool = False):
         pass
 
@@ -74,9 +74,9 @@ class PostConnect(BaseConnect):
 
     @overload
     def __init__(self, function: str, json: str, access_token: str, url: bool = False):
-        pass
+        pass"""
 
-    def __init__(self, function: str, json, access_token: str, url: str | bool = False):
+    def __init__(self, function: str, access_token: str, json:dict | str,  url: str | bool = False):
         super().__init__(function=function, url=url, access_token=access_token)
         if isinstance(json, dict):
             payload = dumps(json)

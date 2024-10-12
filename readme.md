@@ -2,7 +2,7 @@
 # 新一代QQ机器人SDK框架
 # 遵循最新的OneBot11规范
 ## 1.简介
-SuperQQBot是一个基于Python开发的新一代QQ机器人SDK框架，遵循OneBot11规范，完美兼容官方的QQBot-py SDK使用方式
+SuperQQBot是一个基于Python开发的新一代QQ机器人SDK框架，遵循最新OneBot12规范，完美兼容官方的QQBot-py SDK使用方式
 ## 2.特点
 ### 高包容性
 源代码放宽了一部分的规范，做了指令优化，对官方SDK的用户更加友好。目标是实现官方SDK代码无缝迁移，减轻开发者迁移负担
@@ -32,3 +32,16 @@ SuperQQBot是一个基于Python开发的新一代QQ机器人SDK框架，遵循On
 3. QQ频道：[点击链接加入腾讯频道【Bot机器人互助频道】](https://pd.qq.com/s/5lx2mz4dh)
 4. 机器人开发互助群：[点击链接加入群聊](https://qm.qq.com/q/POilUp1kUq)
 5. 邮箱：[给我发邮箱](mailto:trustedinster@outlook.com)
+## 由于技术原因无法直接平替的用法
+### 轻微：使用会被警告
+
+| 即将弃用的官方SDK用法      | SuperQQBot用法          | 类型 |
+|-------------------|-----------------------|----|
+| `self.robot.name` | `self.robot.username` | 用法 |
+### 严重：无法使用或使用报错
+
+| 已弃用的官方SDK用法 | SuperQQBot用法 | 错误提示 |
+|-------------|--------------|------|
+|             |              |      |
+
+
