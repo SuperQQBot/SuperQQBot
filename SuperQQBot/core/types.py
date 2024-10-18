@@ -1,8 +1,8 @@
 from dataclasses import field, dataclass
-from typing import List, Dict, Any, Optional
 from datetime import datetime
-import warnings
-from .Error import CompatibilityWillBeUnSuppose, UnknownError, UnknownKwargs, UnSupposeUsage
+from typing import List, Dict, Any, Optional
+
+from .Error import UnknownKwargs, UnSupposeUsage
 
 
 # 定义基本的事件对象
@@ -15,11 +15,13 @@ class Event:
     self: Optional['Self'] = None
     sub_type: Optional[str] = None
 
+
 # 定义 Self 对象
 @dataclass
 class Self:
     platform: str
     user_id: str
+
 
 # 定义消息事件对象
 @dataclass
@@ -29,6 +31,7 @@ class MessageEvent:
     alt_message: str
     user_id: str
     nickname: Optional[str] = None
+
 
 # 定义频道对象
 @dataclass
@@ -46,6 +49,7 @@ class Channel:
     application_id: Optional[str] = None
     parent_id: Optional[str] = None
 
+
 # 定义用户对象
 @dataclass
 class User:
@@ -57,6 +61,7 @@ class User:
     union_user_account: Optional[str] = None
     share_url: Optional[str] = None
     welcome_msg: Optional[str] = None
+
 
 # 定义频道对象
 @dataclass
@@ -70,6 +75,7 @@ class Guild:
     max_members: int
     joined_at: str
     owner: bool
+
 
 # 定义成员对象
 @dataclass
@@ -85,6 +91,7 @@ class Member:
     permissions: Optional[str] = None
     communication_disabled_until: Optional[str] = None
 
+
 # 定义消息附件对象
 @dataclass
 class MessageAttachment:
@@ -98,12 +105,14 @@ class MessageAttachment:
     description: Optional[str] = None
     content_type: Optional[str] = None
 
+
 # 定义反应对象
 @dataclass
 class Reaction:
     count: int
     me: bool
     emoji: dict
+
 
 # 定义消息对象
 @dataclass
@@ -121,10 +130,12 @@ class BaseMessage:
     embeds: List[Dict[str, Any]] = field(default_factory=list)
     reactions: List[Reaction] = field(default_factory=list)
 
+
 # 定义消息对象
 @dataclass
 class Message(BaseMessage):
     pass
+
 
 # 定义群管理事件
 @dataclass
@@ -133,15 +144,18 @@ class GroupManageEvent:
     op_member_openid: str
     timestamp: datetime
 
+
 # 定义群消息对象
 @dataclass
 class GroupMessage(BaseMessage):
     pass
 
+
 # 定义私聊消息对象
 @dataclass
 class C2CMessage(BaseMessage):
     pass
+
 
 # 定义论坛主题信息
 @dataclass
@@ -149,10 +163,12 @@ class Elems:
     text: str
     type: int
 
+
 @dataclass
 class Paragraphs:
     elems: List[Elems]
     props: Dict[Any, Any]
+
 
 @dataclass
 class ThreadInfo:
@@ -161,6 +177,7 @@ class ThreadInfo:
     thread_id: str
     title: List[Paragraphs]
 
+
 @dataclass
 class Thread:
     author_id: str
@@ -168,12 +185,14 @@ class Thread:
     guild_id: str
     thread_info: ThreadInfo
 
+
 # 定义 DirectMessage 类型
 @dataclass
 class DirectMessage:
     recipient_id: str
     message: str
     timestamp: datetime
+
 
 # 定义 Group 类型
 @dataclass
@@ -187,6 +206,7 @@ class Group:
     joined_at: str
     owner: bool
 
+
 # 定义 Interaction 类型
 @dataclass
 class Interaction:
@@ -198,6 +218,7 @@ class Interaction:
     data: Dict[str, Any]
     member: Member
 
+
 # 定义 MessageAudit 类型
 @dataclass
 class MessageAudit:
@@ -205,6 +226,7 @@ class MessageAudit:
     message_id: str
     result: bool
     reason: Optional[str] = None
+
 
 # 定义 ForumThread 类型
 @dataclass
@@ -215,6 +237,7 @@ class ForumThread:
     content: str
     timestamp: datetime
 
+
 # 定义 ForumPost 类型
 @dataclass
 class ForumPost:
@@ -223,6 +246,7 @@ class ForumPost:
     author_id: str
     content: str
     timestamp: datetime
+
 
 # 定义 ForumReply 类型
 @dataclass
@@ -233,6 +257,7 @@ class ForumReply:
     content: str
     timestamp: datetime
 
+
 # 定义 ForumPublishAudit 类型
 @dataclass
 class ForumPublishAudit:
@@ -241,16 +266,33 @@ class ForumPublishAudit:
     result: bool
     reason: Optional[str] = None
 
+
 # 定义 AudioAction 类型
 @dataclass
 class AudioAction:
     action: str
     duration: Optional[int] = None
 
+
 # 定义 PublicMessage 类型
 @dataclass
 class PublicMessage(BaseMessage):
     pass
+
+
+@dataclass
+class MakeDown_params:
+    key: str
+    values: List[str]
+
+
+@dataclass
+class MakeDown:
+    content: str
+    custom_template_id: str
+    params: List[MakeDown_params]
+
+
 @dataclass
 class ChannelType:
     """子频道类型\n
@@ -265,6 +307,7 @@ class ChannelType:
     10006	应用子频道\n
     10007	论坛子频道\n"""
     type: int
+
     def __init__(self):
         self.SHOULD_IN = [0, 1, 2, 3, 4, 10005, 10006, 10007]
         self.Keep_so_can_not_use = [1, 3]
@@ -274,6 +317,8 @@ class ChannelType:
         elif self.type in self.Keep_so_can_not_use:
             raise (
                 UnSupposeUsage(self.type))
+
+
 @dataclass
 class ChannelSubType:
     """子频道类型\n
@@ -284,6 +329,7 @@ class ChannelSubType:
     2	攻略\n
     3	开黑\n"""
     type: int
+
     def __init__(self):
         self.SHOULD_IN = [0, 1, 2, 3]
         self.Keep_so_can_not_use = None
@@ -293,6 +339,8 @@ class ChannelSubType:
         elif self.type in self.Keep_so_can_not_use:
             raise (
                 UnSupposeUsage(self.type))
+
+
 class PrivateType:
     """子频道私密类型\n
         值	描述\n
@@ -311,6 +359,7 @@ class PrivateType:
             raise (
                 UnSupposeUsage(self.type))
 
+
 class SpeakPermission:
     """子频道发言权限\n
             值	描述\n
@@ -324,7 +373,188 @@ class SpeakPermission:
         self.Keep_so_can_not_use = [0]
         if self.type not in self.SHOULD_IN:
             raise (
-                UnknownKwargs("PrivateType", self.SHOULD_IN, self.type))
+                UnknownKwargs("SpeakPermission", self.SHOULD_IN, self.type))
         elif self.type in self.Keep_so_can_not_use:
             raise (
                 UnSupposeUsage(self.type))
+
+
+class MessageType:
+    """消息类型\n
+            值	描述\n
+            0	文本\n
+            1	markdown\n
+            2	ark 富媒体"""
+    type: int
+
+    def __init__(self):
+        self.SHOULD_IN = [0, 1, 2]
+        self.Keep_so_can_not_use = []
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("MessageType", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+
+
+class render_style:
+    """按钮样式\n
+            值	描述\n
+            0	灰色线框\n
+            1	蓝色线框"""
+    type: int
+
+    def __init__(self):
+        self.SHOULD_IN = [0, 1]
+        self.Keep_so_can_not_use = []
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("render_style", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+
+
+class action_type:
+    """按钮操作设置\n
+            值	描述\n
+            0	跳转按钮：http 或 小程序 客户端识别 scheme\n
+            1	回调按钮：回调后台接口, data 传给后台\n
+            2   指令按钮：自动在输入框插入 @bot data"""
+    type: int
+
+    def __init__(self):
+        self.SHOULD_IN = [0, 1, 2]
+        self.Keep_so_can_not_use = []
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("action_type", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+
+
+class permission_type:
+    """按钮操作设置\n
+                值	描述\n
+                0	指定用户可操作\n
+                1	仅管理者可操作\n
+                2   所有人可操作\n
+                3   指定身份组可操作（仅频道可用）"""
+    type: int
+
+    def __init__(self):
+        self.SHOULD_IN = [0, 1, 2, 3]
+        self.Keep_so_can_not_use = []
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("action_type", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+
+
+@dataclass
+class permission:
+    type: permission_type
+    user_ids: List[str] = field(default_factory=list)
+    role_ids: List[str] = field(default_factory=list)
+
+
+@dataclass
+class render_data:
+    label: str
+    visited_label: str
+    style: render_style
+
+
+@dataclass
+class action:
+    type: action_type
+    permission: permission
+    data: str
+    reply: bool
+    enter: bool
+    anchor: int
+    unsupport_tips: str
+    click_limit: int | None = None
+    at_bot_show_channel_list: bool | None = None
+
+    def __init__(self):
+        if self.click_limit is not None:
+            raise (
+                UnSupposeUsage("click_limit"))
+        if self.at_bot_show_channel_list is not None:
+            raise (
+                UnSupposeUsage("at_bot_show_channel_list"))
+
+
+@dataclass
+class Button:
+    id: Optional[str] = None
+    render_data: render_data = field(default_factory=dict)
+    action: action = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "render_data": self.render_data,
+            "action": self.action
+        }
+
+
+@dataclass
+class Keyboard:
+    rows: List[List[Button]] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "rows": [[button.to_dict() for button in row] for row in self.rows]
+        }
+
+
+@dataclass
+class Ark:
+    template_id: int
+    kv: dict[str, Any] = field(default_factory=dict)
+
+
+class file_type:
+    """按钮操作设置\n
+                    值	描述\n
+                    1	图片 [png/jpg]\n
+                    2	视频 [mp4]\n
+                    3   语音 [silk]\n
+                    4   文件（暂不开放）"""
+    type: int
+
+    def __init__(self):
+        self.SHOULD_IN = [1, 2, 3, 4]
+        self.Keep_so_can_not_use = [4]
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("file_type", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+
+
+@dataclass
+class C2C_file_Send:
+    file_type: file_type
+    url: str
+    srv_send_msg: bool
+    file_data: Optional[Any]
+
+    def __init__(self):
+        if self.file_data is not None:
+            raise (
+                UnSupposeUsage("file_data"))
+
+@dataclass
+class Media_C2C:
+    file_uuid : str
+    file_info : str
+    ttl : int
+    id : Optional[str]
