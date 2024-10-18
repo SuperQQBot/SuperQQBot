@@ -64,3 +64,27 @@ class CompatibilityWillBeUnSuppose(Warning):
 class UsingCompatibilityMode(Warning):
     def __str__(self):
         return "虽然兼容性设置可以解决大部分问题，但不代表兼容性设置是可被接受的。由于技术原因，部分兼容性设置可能导致无法正常运行"
+
+class UnknownKwargs(Exception):
+    def __init__(self, kwarg_name, should_in, but_give):
+        super().__init__(kwarg_name, should_in, but_give)
+        self.kwarg_name = kwarg_name
+        self.should_in = should_in
+        self.but_give = but_give
+
+    def __str__(self):
+        return f"未知的{self.kwarg_name}，应该在{self.should_in}，但是给予了我们{self.but_give}"
+class UnSupposeUsage(Exception):
+    def __init__(self, un_suppose_usage):
+        super().__init__(un_suppose_usage)
+        self.un_suppose_usage = un_suppose_usage
+
+    def __str__(self):
+        return f"{self.un_suppose_usage}已不再受支持"
+class WrongArgs(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
+
+    def __str__(self):
+        return {self.message}

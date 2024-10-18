@@ -2,7 +2,8 @@ from dataclasses import field, dataclass
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import warnings
-from .Error import CompatibilityWillBeUnSuppose
+from .Error import CompatibilityWillBeUnSuppose, UnknownError, UnknownKwargs, UnSupposeUsage
+
 
 # 定义基本的事件对象
 @dataclass
@@ -255,3 +256,80 @@ class AudioAction:
 @dataclass
 class PublicMessage(BaseMessage):
     pass
+@dataclass
+class ChannelType:
+    """子频道类型\n
+    注：由于QQ频道还在持续的迭代中，经常会有新的子频道类型增加，文档更新不一定及时，开发者识别 ChannelType 时，请注意相关的未知 ID 的处理。\n
+    值	描述\n
+    0	文字子频道\n
+    1	保留，不可用\n
+    2	语音子频道\n
+    3	保留，不可用\n
+    4	子频道分组\n
+    10005	直播子频道\n
+    10006	应用子频道\n
+    10007	论坛子频道\n"""
+    type: int
+    def __init__(self):
+        self.SHOULD_IN = [0, 1, 2, 3, 4, 10005, 10006, 10007]
+        self.Keep_so_can_not_use = [1, 3]
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("ChannelType", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+@dataclass
+class ChannelSubType:
+    """子频道类型\n
+    目前只有文字子频道具有 ChannelSubType 二级分类，同时二级分类也可能会不断增加，开发者也需要注意对未知 ID 的处理。\n
+    值	描述\n
+    0	闲聊\n
+    1	公告\n
+    2	攻略\n
+    3	开黑\n"""
+    type: int
+    def __init__(self):
+        self.SHOULD_IN = [0, 1, 2, 3]
+        self.Keep_so_can_not_use = None
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("ChannelSubType", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+class PrivateType:
+    """子频道私密类型\n
+        值	描述\n
+        0	公开频道\n
+        1	群主管理员可见\n
+        2	群主管理员+指定成员，可使用 修改子频道权限接口 指定成员"""
+    type: int
+
+    def __init__(self):
+        self.SHOULD_IN = [0, 1, 2]
+        self.Keep_so_can_not_use = None
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("PrivateType", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+
+class SpeakPermission:
+    """子频道发言权限\n
+            值	描述\n
+            0	无效类型\n
+            1	所有人\n
+            2	群主管理员+指定成员，可使用 修改子频道权限接口 指定成员"""
+    type: int
+
+    def __init__(self):
+        self.SHOULD_IN = [0, 1, 2]
+        self.Keep_so_can_not_use = [0]
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("PrivateType", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
