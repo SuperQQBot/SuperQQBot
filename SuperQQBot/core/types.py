@@ -58,11 +58,6 @@ class User:
     share_url: Optional[str] = None
     welcome_msg: Optional[str] = None
 
-    @property
-    def name(self):
-        warnings.warn(CompatibilityWillBeUnSuppose("self.robot.name", "self.robot.username"))
-        return self.username
-
 # 定义频道对象
 @dataclass
 class Guild:

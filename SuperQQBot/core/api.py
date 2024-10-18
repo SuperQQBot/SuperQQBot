@@ -73,7 +73,7 @@ class WebSocketAPI(BaseBotApi):
         super().__init__(access_token=access_token, is_sandbox=is_sandbox)
 
     async def get_wss_url(self) -> str:
-        response = await GetConnect("/gateway", self.access_token, self.public_url).json()
+        response = GetConnect("/gateway", self.access_token, self.public_url).json()
         return response["url"]
 
 # 频道模块API
