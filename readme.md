@@ -36,9 +36,10 @@ SuperQQBot是一个基于Python开发的新一代QQ机器人SDK框架，遵循�
 ## [平替模组](https://gitee.com/Root_cty/SuperQQBot-official-mod)
 ### 轻微：通过平替模组解决
 
-| 即将弃用的官方SDK用法      | SuperQQBot用法          | 类型 |
-|-------------------|-----------------------|----|
-| `self.robot.name` | `self.robot.username` | 用法 |
+| 即将弃用的官方SDK用法      | SuperQQBot用法          | 类型    |
+|-------------------|-----------------------|-------|
+| `self.robot.name` | `self.robot.username` | API用法 |
+| `public_messages` | `GROUP_AND_C2C_EVENT` | 消息订阅  |
 ### 严重：无法使用或使用报错（不可通过平替模组解决）
 
 | 已弃用的官方SDK用法 | SuperQQBot用法 | 错误提示 |
