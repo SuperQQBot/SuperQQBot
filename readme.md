@@ -33,7 +33,7 @@ SuperQQBot是一个基于Python开发的新一代QQ机器人SDK框架，遵循�
 4. 机器人开发互助群：[点击链接加入群聊](https://qm.qq.com/q/POilUp1kUq)
 5. 邮箱：[给我发邮箱](mailto:trustedinster@outlook.com)
 ## 由于技术原因无法直接平替的用法
-## [平替模组]()
+## [平替模组](https://gitee.com/Root_cty/SuperQQBot-official-mod)
 ### 轻微：使用会被警告（可通过平替模组解决）
 
 | 即将弃用的官方SDK用法      | SuperQQBot用法          | 类型 |
