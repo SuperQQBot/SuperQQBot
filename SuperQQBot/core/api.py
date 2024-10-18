@@ -101,7 +101,7 @@ class GuildManagementApi(BaseBotApi):
             output.append(Channel(**i))
         return output
 
-    async def me(self) -> User:
+    def me(self) -> User:
         """获取用户详情。
         :rtype: User
         :return: 当前用户（机器人）详细"""
