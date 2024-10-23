@@ -1,3 +1,6 @@
-[submodule "mods"]
-	path = mods
-	url = https://gitee.com/Root_cty/SuperQQBot-official-mod
+[submodule "supports_mods"]
+	path = /mods/back_to_old
+	url = https://gitee.com/SuperQQBot/official-version-supports-mods
+[submodule "mod_loader"]
+	path = /mods/mod_loader
+	url = https://gitee.com/SuperQQBot/official-mod-loader
