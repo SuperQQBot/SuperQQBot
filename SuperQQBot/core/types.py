@@ -292,6 +292,13 @@ class MakeDown:
     custom_template_id: str
     params: List[MakeDown_params]
 
+    def to_dict(self):
+        return {
+            "content": self.content,
+            "custom_template_id": self.custom_template_id,
+            "params": self.params
+        }
+
 
 @dataclass
 class ChannelType:
@@ -385,9 +392,10 @@ class MessageType:
             0	文本\n
             1	markdown\n
             2	ark 富媒体"""
-    type: int
 
-    def __init__(self):
+
+    def __init__(self, type:int):
+        self.type = type
         self.SHOULD_IN = [0, 1, 2]
         self.Keep_so_can_not_use = []
         if self.type not in self.SHOULD_IN:
@@ -468,6 +476,13 @@ class render_data:
     visited_label: str
     style: render_style
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "label": self.label,
+            "visited_label": self.visited_label,
+            "style": self.style
+        }
+
 
 @dataclass
 class action:
@@ -499,7 +514,7 @@ class Button:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
-            "render_data": self.render_data,
+            "render_data": self.render_data.to_dict(),
             "action": self.action
         }
 
@@ -518,6 +533,12 @@ class Keyboard:
 class Ark:
     template_id: int
     kv: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "template_id": self.template_id,
+            "kv": self.kv
+        }
 
 
 class file_type:
@@ -552,9 +573,76 @@ class C2C_file_Send:
             raise (
                 UnSupposeUsage("file_data"))
 
+
 @dataclass
 class Media_C2C:
-    file_uuid : str
-    file_info : str
-    ttl : int
-    id : Optional[str]
+    file_uuid: str
+    file_info: str
+    ttl: int
+    id: Optional[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "file_uuid": self.file_uuid,
+            "file_info": self.file_info,
+            "ttl": self.ttl,
+            "id": self.id
+        }
+
+
+@dataclass
+class C2C_Message_Info:
+    message_id: str
+    timestamp: datetime
+
+
+@dataclass
+class MessageEmbedThumbnail:
+    url: str
+
+    def to_dict(self):
+        return {
+            "url": self.url
+        }
+
+
+@dataclass
+class MessageEmbedField:
+    name: str
+
+    def to_dict(self):
+        return {
+            "name": self.name
+        }
+
+
+@dataclass
+class MessageEmbed:
+    title: str
+    prompt: str
+    thumbnail: MessageEmbedThumbnail
+    fields: List[MessageEmbedField]
+
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "prompt": self.prompt,
+            "thumbnail": self.thumbnail.to_dict(),
+            "fields": [field.to_dict() for field in self.fields]
+        }
+
+
+@dataclass
+class Channel_Message_Info:
+    id: str
+    channel_id: str
+    guild_id: str
+    content: str
+    timestamp: datetime
+    tts: bool
+    mention_everyone: bool
+    author: User
+    embeds: List[MessageEmbed]
+    pinned: bool
+    type: MessageType
+    flag: int

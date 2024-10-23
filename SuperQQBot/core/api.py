@@ -1,5 +1,6 @@
-from .Error import WrongArgs
+from .Error import WrongArgs, ParameterMappingFailed
 from .connection import PostConnect, GetConnect
+from .types import Guild
 from . import Error
 from SuperQQBot.core.types import *
 from . import logging
@@ -204,10 +205,10 @@ class GuildManagementApi(BaseBotApi):
         PostConnect(f"/channels/{channel_id}", self.access_token, {}, self.public_url).verify_data()
         return
 class MessageAPI(BaseBotApi):
-    def __init__(self, openid: str | User, access_token: str, is_sandbox: bool = False):
+    def __init__(self, access_token: str, is_sandbox: bool = False):
         super().__init__(access_token=access_token, is_sandbox=is_sandbox)
-        self.openid = openid if isinstance(openid, str) else openid.open_id
     async def post_dms(self,
+                       openid: str,
                        msg_type: MessageType,
                        content: str | None = None,
                        makedown: MakeDown | None = None,
@@ -218,8 +219,9 @@ class MessageAPI(BaseBotApi):
                        event_id: str | None = None,
                        msg_id : str | None = None,
                        msg_seq : int | None = None
-    ):
+                       ) -> C2C_Message_Info:
         """单独发动消息给用户。
+        :param openid: 	QQ 用户的 openid，可在各类事件中获得。
         :param content: 文本内容
         :param msg_type: 消息类型：0 是文本，2 是 markdown， 3 ark，4 embed，7 media 富媒体
         :param msg_id: 前置收到的用户发送过来的消息 ID，用于发送被动（回复）消息
@@ -229,16 +231,118 @@ class MessageAPI(BaseBotApi):
         :param media: 富媒体单聊的file_info
         :param message_reference: 【暂未支持】消息引用
         :param event_id: 前置收到的事件 ID，用于发送被动消息，支持事件："INTERACTION_CREATE"、"C2C_MSG_RECEIVE"、"FRIEND_ADD"
-        :param msg_seq: 前置收到的用户发送过来的消息 ID，用于发送被动（回复）消息"""
-        if message_reference is not None:
-            raise (
-                UnSupposeUsage("message_reference"))
+        :param msg_seq: 前置收到的用户发送过来的消息 ID，用于发送被动（回复）消息
+        """
         data = {
             "content": content,
             "msg_id": msg_id,
             "msg_type": msg_type.type
         }
-        return Message(**PostConnect(f"/v2/users/{self.openid}/messages", self.access_token, data, self.public_url).json())
+        if message_reference is not None:
+            raise (
+                UnSupposeUsage("message_reference"))
+        if msg_type.type == 0 and content is None:
+            raise (
+                ParameterMappingFailed("content", "msg_type", content, msg_type))
+        elif msg_type.type == 2 and makedown is None:
+            raise (
+                ParameterMappingFailed("makedown", "msg_type", makedown, msg_type))
+        elif msg_type.type == 3 and ark is None:
+            raise (
+                ParameterMappingFailed("ark", "msg_type", ark, msg_type))
+        elif msg_type.type == 4 and media is None:
+            raise (
+                ParameterMappingFailed("media", "msg_type", media, msg_type))
+        else:
+            if msg_type == 0:
+                data["content"] = content
+            elif msg_type == 2:
+                data["makedown"] = makedown.to_dict()
+            elif msg_type == 3:
+                data["ark"] = ark.to_dict()
+            elif msg_type == 4:
+                data["media"] = media.to_dict()
+        return C2C_Message_Info(**PostConnect(f"/v2/users/{openid}/messages", self.access_token, data, self.public_url).json())
+    async def post_channel_messages(self,
+                                    channel_id: str | int | Channel,
+                                    embed: Optional[MessageEmbed] = None,
+                                    content: str | None = None,
+                                    makedown: MakeDown | None = None,
+                                    ark: Ark | None = None,
+                                    message_reference : Optional[Any] = None,
+                                    event_id: str | None = None,
+                                    image : Optional[str] = None,
+                                    msg_id : Optional[str] = None
+    ) -> Channel_Message_Info:
+        """功能描述
+    用于向 channel_id 指定的子频道发送消息。
+
+    要求操作人在该子频道具有发送消息的权限。\n
+    主动消息在频道主或管理设置了情况下，按设置的数量进行限频。在未设置的情况遵循如下限制:\n
+    主动推送消息，默认每天往每个子频道可推送的消息数是 20 条，超过会被限制。\n
+    主动推送消息在每个频道中，每天可以往 2 个子频道推送消息。超过后会被限制。\n
+    不论主动消息还是被动消息，在一个子频道中，每 1s 只能发送 5 条消息。\n
+    被动回复消息有效期为 5 分钟。超时会报错。\n
+    发送消息接口要求机器人接口需要连接到 websocket 上保持在线状态\n
+    有关主动消息审核，可以通过 Intents 中审核事件 MESSAGE_AUDIT 返回 MessageAudited 对象获取结果。\n
+    :param channel_id: 频道ID
+    :param content: 选填，消息内容，文本内容，支持内嵌格式
+    :param embed: 选填，embed 消息，一种特殊的 ark，详情参考Embed消息
+    :param ark: 选填，ark 消息
+    :param message_reference: 	选填，引用消息
+    :param image: 选填，图片url地址，平台会转存该图片，用于下发图片消息
+    :param msg_id: 选填，要回复的消息id(Message.id), 在 AT_CREATE_MESSAGE 事件中获取。
+    :param event_id: 选填，要回复的事件id, 在各事件对象中获取。
+    :param makedown: 选填，markdown 消息
+"""
+        if content is None and makedown is None and ark is None and embed is None:
+            raise (
+                WrongArgs("content, embed, ark, image/file_image, markdown 至少需要有一个字段，否则无法下发消息。"))
+        else:
+            data = {
+                "content": content
+            }
+            if image is not None:
+                data["image"] = image
+            if content is not None:
+                data["content"] = content
+            if embed is not None:
+                data["embed"] = embed.to_dict()
+            if ark is not None:
+                data["ark"] = ark.to_dict()
+            if message_reference is not None:
+                data["message_reference"] = message_reference
+            if image is not None:
+                data["image"] = image
+            if msg_id is not None:
+                data["msg_id"] = msg_id
+            if event_id is not None:
+                data["event_id"] = event_id
+            if makedown is not None:
+                data["makedown"] = makedown.to_dict()
+        response = PostConnect(f"/channels/{channel_id}/messages", self.access_token, data, self.public_url).json()
+        return Channel_Message_Info(
+            id=response["id"],
+            channel_id=response["channel_id"],
+            guild_id=response["guild_id"],
+            timestamp=response["timestamp"],
+            author=User(
+                id=response["author"]["id"],
+                username=response["author"]["username"],
+                avatar=response["author"]["avatar"],
+                bot=response["author"]["bot"]
+            ),
+            content=response["content"],
+            type=response["type"],
+            embeds=response["embeds"],
+            tts=response["tts"],
+            mention_everyone=response["mention_everyone"],
+            pinned=response["pinned"],
+            flag=response["flag"]
+        )
+
+
+
 
 
 class BotAPI(WebSocketAPI, GuildManagementApi, MessageAPI):

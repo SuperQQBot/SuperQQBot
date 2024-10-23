@@ -1,7 +1,7 @@
 from typing import overload
 from json import dumps
 
-import requests
+import datetime
 from requests import post, get, JSONDecodeError
 from .Error import *
 
@@ -55,7 +55,15 @@ class BaseConnect:
     def json(self) -> dict | None:
         self.verify_data()
         try:
-            return self.response.json()
+            json_result = self.response.json()
+            if isinstance(json_result, list):
+                for i in json_result:
+                    if "timestamp" in i.keys():
+                        i["timestamp"] = datetime.datetime.fromtimestamp(i["timestamp"])
+            else:
+                if "timestamp" in json_result.keys():
+                    json_result["timestamp"] = datetime.datetime.fromtimestamp(json_result["timestamp"])
+            return json_result
         except JSONDecodeError:
             return None
 

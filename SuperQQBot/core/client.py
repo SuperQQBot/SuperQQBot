@@ -9,6 +9,7 @@ from .api import WebSocketAPI, Token, GuildManagementApi, BotAPI
 from .connection import get_authorization
 from .types import *
 from .logging import get_logger
+import warnings
 
 
 _log = get_logger()
@@ -31,18 +32,10 @@ class Intents:
 
     DEFAULT_VALUE = 0
 
-    old_flags = {
-        "public_messages": 'GROUP_AND_C2C_EVENT'
-    }
-
     def __init__(self, **kwargs: bool) -> None:
         self.value: int = self.DEFAULT_VALUE
         self.intents = {flag: False for flag in self.VALID_FLAGS}
         for key, value in kwargs.items():
-            if key in self.old_flags:
-                warnings.warn(CompatibilityWillBeUnSuppose(key, self.old_flags[key]))
-                self.intents[self.old_flags[key]] = value
-                continue
             if key not in self.VALID_FLAGS:
                 raise TypeError(f"{key!r} 是无效的标志名称。")
             self.intents[key] = value
@@ -538,7 +531,8 @@ class Client:
     # GUILD_MESSAGES 事件
     async def on_message_create(self, message: Message):
         """发送消息事件，代表频道内的全部消息，而不只是 at 机器人的消息。内容与 AT_MESSAGE_CREATE 相同"""
-        _log.info(f"消息 {message.content} 在频道 {message.channel.guild.name} 创建")
+        _log.info(f"收到消息：{message}")
+        _log.info(f"消息 {message.content} 在频道 {message.channel_id} 创建")
 
     async def on_message_delete(self, message: Message):
         """删除（撤回）消息事件"""
