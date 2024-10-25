@@ -1,8 +1,8 @@
-from typing import overload
+import datetime
 from json import dumps
 
-import datetime
-from requests import post, get, JSONDecodeError
+from requests import post, get, JSONDecodeError, delete, put
+
 from .Error import *
 
 Authorization_TYPES = "QQBot"
@@ -10,12 +10,15 @@ Authorization_TYPES = "QQBot"
 
 def get_authorization(access_token) -> str:
     return f"{Authorization_TYPES} {access_token}"
+
+
 def my_ipaddress() -> str:
     try:
         response = get("https://searchplugin.csdn.net/api/v1/ip/get").json()
         return response["data"]["ip"]
-    except :
+    except:
         return "未知"
+
 
 class BaseConnect:
     def __init__(self, function: str, access_token: str, url: str | bool = False):
@@ -25,6 +28,7 @@ class BaseConnect:
                 if url else "https://api.sgroup.qq.com/"
         self.url = (url if not url.endswith("/") else url[:-1]) + function
         self.access_token = access_token
+
     def is_error(self) -> bool:
         return self.response.status_code != 200 or "err_code" in self.response.json()
 
@@ -50,7 +54,8 @@ class BaseConnect:
             return
         else:
             raise (
-                UnknownError(self.response))
+                UnknownError(
+                    f"\nt={self.response.text};c={self.response};r={self.response.request.body};u={self.response.request.url};m={self.response.request.method};r={self.response.reason}"))
 
     def json(self) -> dict | None:
         self.verify_data()
@@ -59,32 +64,18 @@ class BaseConnect:
             if isinstance(json_result, list):
                 for i in json_result:
                     if "timestamp" in i.keys():
-                        i["timestamp"] = datetime.datetime.fromtimestamp(i["timestamp"])
+                        i["timestamp"] = datetime.datetime.fromisoformat(i["timestamp"])
             else:
                 if "timestamp" in json_result.keys():
-                    json_result["timestamp"] = datetime.datetime.fromtimestamp(json_result["timestamp"])
+                    json_result["timestamp"] = datetime.datetime.fromisoformat(json_result["timestamp"])
             return json_result
         except JSONDecodeError:
             return None
 
+
 class PostConnect(BaseConnect):
-    """@overload
-    def __init__(self, function: str, json: dict, access_token: str, url: bool = False):
-        pass
 
-    @overload
-    def __init__(self, function: str, json: dict, access_token: str, url: str = "https://api.sgroup.qq.com/"):
-        pass
-
-    @overload
-    def __init__(self, function: str, json: str, access_token: str, url: str = "https://api.sgroup.qq.com/"):
-        pass
-
-    @overload
-    def __init__(self, function: str, json: str, access_token: str, url: bool = False):
-        pass"""
-
-    def __init__(self, function: str, access_token: str, json:dict | str,  url: str | bool = False):
+    def __init__(self, function: str, access_token: str, json: dict | str, url: str | bool = False):
         super().__init__(function=function, url=url, access_token=access_token)
         if isinstance(json, dict):
             payload = dumps(json)
@@ -99,25 +90,7 @@ class PostConnect(BaseConnect):
         self.text = self.response.text
 
 
-
-
 class GetConnect(BaseConnect):
-    @overload
-    def __init__(self, function: str, access_token: str, url: bool = False):
-        pass
-
-    @overload
-    def __init__(self, function: str, access_token: str, url: str = "https://api.sgroup.qq.com/"):
-        pass
-
-    @overload
-    def __init__(self, function: str, access_token: str, url: str = "https://api.sgroup.qq.com/"):
-        pass
-
-    @overload
-    def __init__(self, function: str, access_token: str, url: bool = False):
-        pass
-
     def __init__(self, function: str, access_token: str, url: str | bool = False):
         super().__init__(url=url, function=function, access_token=access_token)
         self.response = get(url=self.url,
@@ -126,4 +99,20 @@ class GetConnect(BaseConnect):
         self.text = self.response.text
 
 
+class DeleteRequests(BaseConnect):
+    def __init__(self, function: str, access_token: str, url: str | bool = False):
+        super().__init__(url=url, function=function, access_token=access_token)
+        self.response = delete(url=self.url,
+                               headers={'Content-Type': 'application/json',
+                                        'Authorization': get_authorization(self.access_token)})
+        self.text = self.response.text
 
+
+class PutRequests(BaseConnect):
+    def __init__(self, function: str, access_token: str, json: dict | str, url: str | bool = False):
+        def __init__(self, function: str, access_token: str, url: str | bool = False):
+            super().__init__(url=url, function=function, access_token=access_token)
+            self.response = put(url=self.url,
+                                headers={'Content-Type': 'application/json',
+                                         'Authorization': get_authorization(self.access_token)})
+            self.text = self.response.text

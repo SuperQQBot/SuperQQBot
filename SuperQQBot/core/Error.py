@@ -31,9 +31,9 @@ class UnknownError(Exception):
         self.response = response
 
     def __str__(self):
-        return ("未知错误，请联系开发者\n"
-                "如果联系开发者，请提供以下信息"
-                f"Server_response : {self.response}")
+        return ("未知错误，请联系开发者（邮箱：trustedinster@outlook.com或通过Issues提交）\n"
+                "如果联系开发者，请提供以下信息："
+                f"{self.response}")
 
 
 class AppIdAndSecretDoNotMatch(Exception):
@@ -119,3 +119,10 @@ class ParameterMappingFailed(Exception):
 
     def __str__(self):
         return f"不能在{self.parameter1}={self.value1}时让{self.parameter2}={self.value2}"
+
+class UsingBetaFunction(Warning):
+    def __init__(self, beta_function_name):
+        super().__init__(beta_function_name)
+        self.beta_function_name = beta_function_name
+    def __str__(self):
+        return f"正在使用Beta功能：{self.beta_function_name}，这意味着此功能可能存在Bug，因此产生的事故或消息错误作者无法承担"

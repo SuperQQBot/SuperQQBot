@@ -1,11 +1,12 @@
-import os
-import sys
 import json
-import yaml
 import logging
 import logging.config
-from typing import List, Dict, Union
+import os
+import sys
 from logging.handlers import TimedRotatingFileHandler
+from typing import List, Dict, Union
+
+import yaml
 
 LOG_COLORS_CONFIG = {
     "DEBUG": "cyan",

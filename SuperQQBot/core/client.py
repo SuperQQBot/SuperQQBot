@@ -1,16 +1,14 @@
-import asyncio
 import json
 
+import asyncio
 import websockets
 from dateutil import parser
 
 from .Error import InvalidIntentsError, ExecutionSequenceError
-from .api import WebSocketAPI, Token, GuildManagementApi, BotAPI
+from .api import WebSocketAPI, Token, GuildManagementApi, BotSendReceiveAPI
 from .connection import get_authorization
-from .types import *
 from .logging import get_logger
-import warnings
-
+from .types import *
 
 _log = get_logger()
 
@@ -41,7 +39,6 @@ class Intents:
             self.intents[key] = value
         self._update_bitwise_value()
 
-
     @classmethod
     def all(cls):
         """ 订阅所有事件 """
@@ -50,6 +47,7 @@ class Intents:
             self.intents[key] = True
         self._update_bitwise_value()
         return self
+
     @classmethod
     def none(cls):
         """ 不订阅任何事件 """
@@ -57,6 +55,7 @@ class Intents:
         self.value = self.DEFAULT_VALUE
         self._update_bitwise_value()
         return self
+
     @classmethod
     def default(cls):
         """ 默认订阅所有公域事件 """
@@ -72,7 +71,6 @@ class Intents:
             self._update_bitwise_value()
         else:
             raise TypeError(f"{intent_name!r} 是无效的标志名称。")
-
 
     def _update_bitwise_value(self):
         bitwise_intents = 0
@@ -94,9 +92,6 @@ class Intents:
     _PUBLIC_GUILD_MESSAGES_BIT = 1 << 30
 
 
-
-
-
 class Client:
     def __init__(self, intents, is_sandbox=False):
         if not isinstance(intents, Intents):
@@ -112,6 +107,7 @@ class Client:
         self.ready = False
         self.d = None
         self.token = None
+        self.tasks = list()
 
     @property
     def robot(self):
@@ -119,14 +115,33 @@ class Client:
             raise ExecutionSequenceError("Client.run()获取AccessToken", "Client.robot获取机器人信息")
         else:
             return GuildManagementApi(self.token, self.is_sandbox).me()
+
     @property
     def api(self):
-        return BotAPI(self.token, self.is_sandbox)
+        return BotSendReceiveAPI(self.token, self.is_sandbox)
 
     def run(self, appid, secret):
         self.token = Token(appid, secret).get_access_token()
         self.websocket_api = WebSocketAPI(self.token, is_sandbox=self.is_sandbox)
-        asyncio.run(self.connect())
+        asyncio.run(self.main())
+
+    async def main(self):
+        task = asyncio.create_task(self.connect())
+        self.tasks.append(task)
+        try:
+            await asyncio.gather(*self.tasks)
+        except asyncio.CancelledError:
+            _log.info("任务被取消，开始处理善后流程")
+            for task in self.tasks:
+                task.cancel()
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+            await self.close()
+        except KeyboardInterrupt:
+            _log.info("检测到键盘请求停止，开始善后")
+            for task in self.tasks:
+                task.cancel()
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+            await self.close()
 
     async def connect(self):
         """ 连接到WebSocket服务器 """
@@ -137,11 +152,9 @@ class Client:
         if self.wss_url is None:
             self.wss_url = await self.websocket_api.get_wss_url()
 
-
         self.ws = await websockets.connect(self.wss_url)
         _log.info(f"已连接到WebSocket服务器: {self.wss_url}")
         await self.handle_messages()
-
 
     async def identify(self):
         """ 发送Identify消息进行鉴权 """
@@ -158,7 +171,7 @@ class Client:
             }
         }
         await self.ws.send(json.dumps(identify_payload))
-        _log.info(f"已发送Identify消息，内容：{identify_payload}")
+        _log.debug(f"已发送Identify消息，内容：{identify_payload}")
 
     async def handle_ready_event(self, data):
         """ 处理Ready Event """
@@ -191,7 +204,7 @@ class Client:
             # 检查是否为Hello消息 (op=10)
             if data.get("op") == 10:
                 self.heartbeat_interval = data["d"]["heartbeat_interval"]
-                _log.info(f"收到Hello消息，心跳间隔: {self.heartbeat_interval} ms")
+                _log.debug(f"收到Hello消息，心跳间隔: {self.heartbeat_interval} ms")
                 await self.start_heartbeat()
                 await self.identify()  # 立即发送Identify消息
                 return None
@@ -438,7 +451,8 @@ class Client:
                                       ) for elem in paragraph.get("elems", [])
                             ],
                             props=paragraph.get("props", {})
-                        ) for paragraph in json.loads(about_event.get("thread_info", {}).get("content", [])).get("paragraphs", [{}])
+                        ) for paragraph in
+                            json.loads(about_event.get("thread_info", {}).get("content", [])).get("paragraphs", [{}])
                         ],
                         date_time=parser.isoparse(about_event.get("thread_info", {}).get("date_time", "")),
                         thread_id=about_event.get("thread_info", {}).get("thread_id", ""),
@@ -449,7 +463,8 @@ class Client:
                                       ) for elem in paragraph.get("elems", [{}])
                             ],
                             props=paragraph.get("props", {})
-                        )for paragraph in json.loads(about_event.get("thread_info", {}).get("title", {})).get("paragraphs", [{}])]
+                        ) for paragraph in
+                            json.loads(about_event.get("thread_info", {}).get("title", {})).get("paragraphs", [{}])]
                     )
                 )
                 await self.on_forum_thread_create(message)
@@ -669,4 +684,3 @@ class Client:
     async def on_public_message_delete(self, message: PublicMessage):
         """当频道的消息被删除时"""
         _log.info(f"频道消息 {message.content} 被删除")
-

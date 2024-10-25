@@ -1,6 +1,6 @@
-import yaml
-
 from typing import Dict, Any
+
+import yaml
 
 
 def read(yaml_path) -> Dict[str, Any]:

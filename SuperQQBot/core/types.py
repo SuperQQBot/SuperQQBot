@@ -137,6 +137,12 @@ class Message(BaseMessage):
     pass
 
 
+@dataclass
+class GroupMessageInfo:
+    id: str
+    timestamp: datetime
+
+
 # 定义群管理事件
 @dataclass
 class GroupManageEvent:
@@ -393,8 +399,7 @@ class MessageType:
             1	markdown\n
             2	ark 富媒体"""
 
-
-    def __init__(self, type:int):
+    def __init__(self, type: int):
         self.type = type
         self.SHOULD_IN = [0, 1, 2]
         self.Keep_so_can_not_use = []
@@ -542,7 +547,7 @@ class Ark:
 
 
 class file_type:
-    """按钮操作设置\n
+    """文件类型\n
                     值	描述\n
                     1	图片 [png/jpg]\n
                     2	视频 [mp4]\n
@@ -642,7 +647,48 @@ class Channel_Message_Info:
     tts: bool
     mention_everyone: bool
     author: User
-    embeds: List[MessageEmbed]
     pinned: bool
     type: MessageType
     flag: int
+    seq_in_channel: int
+
+
+@dataclass
+class MediaInfo:
+    file_uuid: str
+    file_info: str
+    ttl: int
+    id: Optional[str]
+
+
+@dataclass
+class EmojiType:
+    """表情类型\n
+                        值	描述\n
+                        1	系统表情\n
+                        2	系统表情"""
+    type: int
+
+    def __init__(self):
+        self.SHOULD_IN = [1, 2]
+        self.Keep_so_can_not_use = []
+        if self.type not in self.SHOULD_IN:
+            raise (
+                UnknownKwargs("Emoji_type", self.SHOULD_IN, self.type))
+        elif self.type in self.Keep_so_can_not_use:
+            raise (
+                UnSupposeUsage(self.type))
+
+
+@dataclass
+class Emoji:
+    """详见：https://bot.q.qq.com/wiki/develop/api-v2/openapi/emoji/model.html#emoji%E5%88%97%E8%A1%A8"""
+    id: str
+    type: EmojiType
+
+
+@dataclass
+class Reaction:
+    users: List[User]
+    cookie: str
+    is_end: bool
