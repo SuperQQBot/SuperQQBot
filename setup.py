@@ -1,5 +1,8 @@
 from setuptools import setup, find_packages
 
+with open('README.md', encoding='utf-8') as f:
+    long_description = f.read()
+
 setup(
     name='SuperQQBot',
     version='2024.10.26',  # 版本号应为标准格式，例如 '0.0.1'
@@ -10,7 +13,7 @@ setup(
     author='Supercmd',
     author_email='trustedinster@outlook.com',
     description='新一代QQ机器人SDK',
-    long_description=open('README.md').read(),  # 读取 README.md 文件作为长描述
+    long_description=long_description,  # 读取 README.md 文件作为长描述
     long_description_content_type='text/markdown',  # 指定长描述的格式为 Markdown
     classifiers=[
         'Development Status :: 3 - Alpha',  # 开发状态
