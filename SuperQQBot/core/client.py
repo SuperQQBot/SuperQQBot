@@ -66,6 +66,7 @@ class Intents:
         self.intents['GUILD_MEMBERS'] = True
         self.intents['PUBLIC_GUILD_MESSAGES'] = True
         self._update_bitwise_value()
+        return self
 
     def set_intent(self, intent_name, value):
         if intent_name in self.VALID_FLAGS:

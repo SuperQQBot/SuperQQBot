@@ -48,6 +48,8 @@ class Channel:
     private_type: int
     application_id: Optional[str] = None
     parent_id: Optional[str] = None
+    op_user_id: Optional[str] = None
+    private_user_ids: List[Optional[str]] = None
 
 
 # 定义用户对象
