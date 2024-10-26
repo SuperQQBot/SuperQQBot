@@ -1,9 +1,11 @@
 import json
+from functools import partial
 
 import asyncio
 import websockets
 from dateutil import parser
 
+from build.lib.core.api import MessageSendReceiveAPI
 from .Error import InvalidIntentsError, ExecutionSequenceError
 from .api import WebSocketAPI, Token, GuildManagementApi, BotSendReceiveAPI
 from .connection import get_authorization
@@ -353,6 +355,8 @@ class Client:
                         ) for reaction in about_event.get("reactions", [])
                     ]
                 )
+                message_api = MessageSendReceiveAPI(self.token, self.is_sandbox)
+                message.reply = partial(message_api.post_channel_messages, channel_id=message.channel_id, msg_id = message.id)
                 await self.on_at_message_create(message)
             elif event_type == "AT_MESSAGE_UPDATE":
                 message = Message(

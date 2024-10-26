@@ -2,7 +2,7 @@ from dataclasses import field, dataclass
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-from .Error import UnknownKwargs, UnSupposeUsage
+from .Error import UnknownKwargs, UnSupposeUsage, UnknownError
 
 
 # 定义基本的事件对象
@@ -134,7 +134,9 @@ class BaseMessage:
 # 定义消息对象
 @dataclass
 class Message(BaseMessage):
-    pass
+
+    def reply(self, **kwargs):
+        raise UnknownError("R P N C")
 
 
 @dataclass
@@ -638,7 +640,7 @@ class MessageEmbed:
 
 
 @dataclass
-class Channel_Message_Info:
+class ChannelMessageInfo:
     id: str
     channel_id: str
     guild_id: str

@@ -1,12 +1,10 @@
 import warnings
 from time import time
 
-from SuperQQBot.core.types import *
-from . import Error
-from . import logging
+from .types import *
+from . import Error, logging
 from .Error import WrongArgs, ParameterMappingFailed, CompatibilityWillBeUnSuppose, UsingBetaFunction
 from .connection import PostConnect, GetConnect, DeleteRequests, PutRequests, my_ipaddress
-from .types import Guild
 
 _log = logging.get_logger()
 
@@ -292,7 +290,7 @@ class MessageSendReceiveAPI(BaseBotApi):
                                     msg_id: Optional[str] = None,
                                     mention: Optional[str] = None,
                                     mention_everyone: bool = False
-                                    ) -> Channel_Message_Info:
+                                    ) -> ChannelMessageInfo:
         """功能描述
     用于向 channel_id 指定的子频道发送消息。
 
@@ -360,7 +358,7 @@ class MessageSendReceiveAPI(BaseBotApi):
                     "content": "<qqbot-at-everyone /> " + content
                 }
         response = PostConnect(f"/channels/{channel_id}/messages", self.access_token, data, self.public_url).json()
-        return Channel_Message_Info(
+        return ChannelMessageInfo(
             id=response["id"],
             channel_id=response["channel_id"],
             guild_id=response["guild_id"],

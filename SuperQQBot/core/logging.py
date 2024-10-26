@@ -7,6 +7,7 @@ from logging.handlers import TimedRotatingFileHandler
 from typing import List, Dict, Union
 
 import yaml
+from bottle import debug
 
 LOG_COLORS_CONFIG = {
     "DEBUG": "cyan",
