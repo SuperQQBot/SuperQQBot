@@ -42,5 +42,5 @@ setup(
         'datetime~=5.5',
     ],
     include_package_data=True,  # 包含包中的数据文件
-    python_requires='>=3.6',  # 最低 Python 版本要求
+    python_requires='>=3.8',  # 最低 Python 版本要求
 )

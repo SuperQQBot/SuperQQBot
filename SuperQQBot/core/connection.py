@@ -109,10 +109,9 @@ class DeleteRequests(BaseConnect):
 
 
 class PutRequests(BaseConnect):
-    def __init__(self, function: str, access_token: str, json: dict | str, url: str | bool = False):
-        def __init__(self, function: str, access_token: str, url: str | bool = False):
-            super().__init__(url=url, function=function, access_token=access_token)
-            self.response = put(url=self.url,
-                                headers={'Content-Type': 'application/json',
-                                         'Authorization': get_authorization(self.access_token)})
-            self.text = self.response.text
+    def __init__(self, function: str, access_token: str, url: str | bool = False):
+        super().__init__(url=url, function=function, access_token=access_token)
+        self.response = put(url=self.url,
+                            headers={'Content-Type': 'application/json',
+                                     'Authorization': get_authorization(self.access_token)})
+        self.text = self.response.text

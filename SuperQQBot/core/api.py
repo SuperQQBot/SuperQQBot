@@ -88,7 +88,7 @@ class GuildManagementApi(BaseBotApi):
     def __init__(self, access_token: str, is_sandbox: bool = False):
         super().__init__(access_token=access_token, is_sandbox=is_sandbox)
 
-    async def get_guild(self, guild_id: str | int | Guild) -> Guild:
+    async def get_guild(self, guild_id: str | int) -> Guild:
         """获取频道详情
         :param guild_id: 频道ID
         :rtype: Guild
@@ -96,7 +96,7 @@ class GuildManagementApi(BaseBotApi):
         response = GetConnect(f"/guilds/{guild_id}", self.access_token, self.public_url).json()
         return Guild(**response)
 
-    async def get_channels(self, guild_id: str | int | Guild) -> List[Channel]:
+    async def get_channels(self, guild_id: str | int) -> List[Channel]:
         """获取子频道列表
         :param guild_id: 频道ID
         :rtype: List[Channel]
@@ -227,12 +227,12 @@ class MessageSendReceiveAPI(BaseBotApi):
                        makedown: MakeDown | None = None,
                        keyboard: Keyboard | None = None,
                        ark: Ark | None = None,
-                       media: Media_C2C | None = None,
+                       media: MediaC2C | None = None,
                        message_reference: Optional[Any] = None,
                        event_id: str | None = None,
                        msg_id: str | None = None,
                        msg_seq: int | None = None
-                       ) -> C2C_Message_Info:
+                       ) -> C2CMessageInfo:
         """单独发动消息给用户。
         :param openid: 	QQ 用户的 openid，可在各类事件中获得。
         :param content: 文本内容
@@ -275,7 +275,7 @@ class MessageSendReceiveAPI(BaseBotApi):
                 data["ark"] = ark.to_dict()
             elif msg_type == 4:
                 data["media"] = media.to_dict()
-        return C2C_Message_Info(
+        return C2CMessageInfo(
             **PostConnect(f"/v2/users/{openid}/messages", self.access_token, data, self.public_url).json())
 
     async def post_channel_messages(self,
@@ -455,7 +455,7 @@ class MessageSendReceiveAPI(BaseBotApi):
                                self.public_url).json()
         return GroupMessageInfo(id=response["id"], timestamp=response["timestamp"])
 
-    async def post_c2c_file(self, openid: str, file_type: file_type, url: str, srv_send_msg: bool,
+    async def post_c2c_file(self, openid: str, file_type: FileType, url: str, srv_send_msg: bool,
                             file_data: Optional[Any] = None) -> MediaInfo:
         """
         用于单聊的富媒体消息上传和发送
@@ -478,7 +478,7 @@ class MessageSendReceiveAPI(BaseBotApi):
         response = PostConnect(f"/v2/users/{openid}/files", self.access_token, data, self.public_url)
         return MediaInfo(**response.json())
 
-    async def post_group_file(self, group_openid: str, file_type: file_type, url: str, srv_send_msg: bool,
+    async def post_group_file(self, group_openid: str, file_type: FileType, url: str, srv_send_msg: bool,
                               file_data: Optional[Any] = None) -> MediaInfo:
         """
         用于群聊的富媒体消息上传和发送
@@ -568,7 +568,7 @@ class MessageExpressionInteraction(BaseBotApi):
             cookie=response["cookie"], is_end=response["is_end"])
 
 
-class BotSendReceiveAPI(WebSocketAPI, GuildManagementApi, MessageSendReceiveAPI, MessageExpressionInteraction):
+class BotAPI(WebSocketAPI, GuildManagementApi, MessageSendReceiveAPI, MessageExpressionInteraction):
     """便于用户快速调用所有API，这是一个通用接口"""
 
     def __init__(self, access_token: str, is_sandbox: bool = False):

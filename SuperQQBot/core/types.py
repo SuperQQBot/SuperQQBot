@@ -4,7 +4,6 @@ from typing import List, Dict, Any, Optional
 
 from .Error import UnknownKwargs, UnSupposeUsage, UnknownError
 
-
 # 定义基本的事件对象
 @dataclass
 class Event:
@@ -145,6 +144,8 @@ class Message(BaseMessage):
 class GroupMessageInfo:
     id: str
     timestamp: datetime
+
+
 
 
 # 定义群管理事件
@@ -291,7 +292,7 @@ class PublicMessage(BaseMessage):
 
 
 @dataclass
-class MakeDown_params:
+class MakeDownParams:
     key: str
     values: List[str]
 
@@ -300,7 +301,7 @@ class MakeDown_params:
 class MakeDown:
     content: str
     custom_template_id: str
-    params: List[MakeDown_params]
+    params: List[MakeDownParams]
 
     def to_dict(self):
         return {
@@ -415,7 +416,7 @@ class MessageType:
                 UnSupposeUsage(self.type))
 
 
-class render_style:
+class RenderStyle:
     """按钮样式\n
             值	描述\n
             0	灰色线框\n
@@ -433,7 +434,7 @@ class render_style:
                 UnSupposeUsage(self.type))
 
 
-class action_type:
+class ActionType:
     """按钮操作设置\n
             值	描述\n
             0	跳转按钮：http 或 小程序 客户端识别 scheme\n
@@ -452,7 +453,7 @@ class action_type:
                 UnSupposeUsage(self.type))
 
 
-class permission_type:
+class PermissionType:
     """按钮操作设置\n
                 值	描述\n
                 0	指定用户可操作\n
@@ -473,17 +474,17 @@ class permission_type:
 
 
 @dataclass
-class permission:
-    type: permission_type
+class Permission:
+    type: PermissionType
     user_ids: List[str] = field(default_factory=list)
     role_ids: List[str] = field(default_factory=list)
 
 
 @dataclass
-class render_data:
+class RenderData:
     label: str
     visited_label: str
-    style: render_style
+    style: RenderStyle
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -494,9 +495,9 @@ class render_data:
 
 
 @dataclass
-class action:
-    type: action_type
-    permission: permission
+class Action:
+    type: ActionType
+    permission: Permission
     data: str
     reply: bool
     enter: bool
@@ -517,8 +518,8 @@ class action:
 @dataclass
 class Button:
     id: Optional[str] = None
-    render_data: render_data = field(default_factory=dict)
-    action: action = field(default_factory=dict)
+    render_data: RenderData = field(default_factory=dict)
+    action: Action = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -550,7 +551,7 @@ class Ark:
         }
 
 
-class file_type:
+class FileType:
     """文件类型\n
                     值	描述\n
                     1	图片 [png/jpg]\n
@@ -571,8 +572,8 @@ class file_type:
 
 
 @dataclass
-class C2C_file_Send:
-    file_type: file_type
+class C2CFileSend:
+    file_type: FileType
     url: str
     srv_send_msg: bool
     file_data: Optional[Any]
@@ -584,7 +585,7 @@ class C2C_file_Send:
 
 
 @dataclass
-class Media_C2C:
+class MediaC2C:
     file_uuid: str
     file_info: str
     ttl: int
@@ -600,7 +601,7 @@ class Media_C2C:
 
 
 @dataclass
-class C2C_Message_Info:
+class C2CMessageInfo:
     message_id: str
     timestamp: datetime
 

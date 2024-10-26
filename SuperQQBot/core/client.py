@@ -5,9 +5,9 @@ import asyncio
 import websockets
 from dateutil import parser
 
-from build.lib.core.api import MessageSendReceiveAPI
+from .api import MessageSendReceiveAPI
 from .Error import InvalidIntentsError, ExecutionSequenceError
-from .api import WebSocketAPI, Token, GuildManagementApi, BotSendReceiveAPI
+from .api import WebSocketAPI, Token, GuildManagementApi, BotAPI
 from .connection import get_authorization
 from .logging import get_logger
 from .types import *
@@ -95,6 +95,12 @@ class Intents:
     _PUBLIC_GUILD_MESSAGES_BIT = 1 << 30
 
 
+async def on_message_create(message: Message):
+    """发送消息事件，代表频道内的全部消息，而不只是 at 机器人的消息。内容与 AT_MESSAGE_CREATE 相同"""
+    _log.info(f"收到消息：{message}")
+    _log.info(f"消息 {message.content} 在频道 {message.channel_id} 创建")
+
+
 class Client:
     def __init__(self, intents, is_sandbox=False):
         if not isinstance(intents, Intents):
@@ -121,7 +127,7 @@ class Client:
 
     @property
     def api(self):
-        return BotSendReceiveAPI(self.token, self.is_sandbox)
+        return BotAPI(self.token, self.is_sandbox)
 
     def run(self, appid, secret):
         self.token = Token(appid, secret).get_access_token()
@@ -199,6 +205,7 @@ class Client:
 
     async def receive_message(self):
         """ 接收来自WebSocket服务器的消息 """
+        msg = None
         try:
             msg = await self.ws.recv()
             _log.debug(f"收到原始消息: {msg}")
@@ -357,6 +364,7 @@ class Client:
                     ]
                 )
                 message_api = MessageSendReceiveAPI(self.token, self.is_sandbox)
+                message.api = message_api
                 message.reply = partial(message_api.post_channel_messages, channel_id=message.channel_id, msg_id = message.id)
                 await self.on_at_message_create(message)
             elif event_type == "AT_MESSAGE_UPDATE":
@@ -442,6 +450,10 @@ class Client:
                         )
                         for attachment in about_event.get("attachments", [])
                     ])
+                message_api = MessageSendReceiveAPI(self.token, self.is_sandbox)
+                message.api = message_api
+                message.reply = partial(message_api.post_channel_messages, channel_id=message.channel_id,
+                                        msg_id=message.id)
                 await self.on_group_at_message_create(message)
             elif event_type == "FORUM_THREAD_CREATE":
                 message = Thread(
@@ -520,7 +532,11 @@ class Client:
                         share_url=about_event.get("author", {}).get("share_url"),
                     )
                 )
-                await self.on_message_create(message)
+                message_api = MessageSendReceiveAPI(self.token, self.is_sandbox)
+                message.api = message_api
+                message.reply = partial(message_api.post_channel_messages, channel_id=message.channel_id,
+                                        msg_id=message.id)
+                await on_message_create(message)
             elif event_type == "GROUP_ADD_ROBOT":
                 message = GroupManageEvent(
                     group_openid=about_event.get("group_openid", ""),
@@ -538,21 +554,17 @@ class Client:
     # GUILD_MEMBERS 事件
     async def on_guild_member_add(self, member: Member):
         """当成员加入时"""
-        _log.info(f"用户 {member.user_name} 加入了频道 {member.guild.name}")
+        _log.info(f"用户 {member.user.username} 加入了频道")
 
     async def on_guild_member_update(self, before: Member, after: Member):
         """当成员资料变更时"""
-        _log.info(f"用户 {after.user_name} 在频道 {after.guild.name} 的资料已更新")
+        _log.info(f"用户 {after.user.username} 在频道 {after.guild.name} 的资料已更新")
 
     async def on_guild_member_remove(self, member: Member):
         """当成员被移除时"""
-        _log.info(f"用户 {member.user_name} 已从频道 {member.guild.name} 中移除")
+        _log.info(f"用户 {member.user.username} 已从频道 {member.guild.name} 中移除")
 
     # GUILD_MESSAGES 事件
-    async def on_message_create(self, message: Message):
-        """发送消息事件，代表频道内的全部消息，而不只是 at 机器人的消息。内容与 AT_MESSAGE_CREATE 相同"""
-        _log.info(f"收到消息：{message}")
-        _log.info(f"消息 {message.content} 在频道 {message.channel_id} 创建")
 
     async def on_message_delete(self, message: Message):
         """删除（撤回）消息事件"""
@@ -583,27 +595,27 @@ class Client:
 
     async def on_friend_add(self, user: User):
         """用户添加使用机器人"""
-        _log.info(f"用户 {user.name} 添加了机器人作为好友")
+        _log.info(f"用户 {user.username} 添加了机器人作为好友")
 
     async def on_friend_del(self, user: User):
         """用户删除机器人"""
-        _log.info(f"用户 {user.name} 删除了机器人")
+        _log.info(f"用户 {user.username} 删除了机器人")
 
     async def on_c2c_msg_reject(self, user: User):
         """用户在机器人资料卡手动关闭'主动消息'推送"""
-        _log.info(f"用户 {user.name} 关闭了主动消息推送")
+        _log.info(f"用户 {user.username} 关闭了主动消息推送")
 
     async def on_c2c_msg_receive(self, user: User):
         """用户在机器人资料卡手动开启'主动消息'推送开关"""
-        _log.info(f"用户 {user.name} 开启了主动消息推送")
+        _log.info(f"用户 {user.username} 开启了主动消息推送")
 
     async def on_group_at_message_create(self, message: GroupMessage):
         """用户在群里@机器人时收到的消息"""
         _log.info(f"用户 {message.author} 在群 {message.group.name} @了机器人：{message.content}")
 
-    async def on_group_add_robot(self, group: Group):
+    async def on_group_add_robot(self, group: GroupManageEvent):
         """机器人被添加到群聊"""
-        _log.info(f"机器人被添加到群聊 {group.name}")
+        _log.info(f"机器人被添加到群聊")
 
     async def on_group_del_robot(self, group: Group):
         """机器人被移出群聊"""
@@ -689,3 +701,7 @@ class Client:
     async def on_public_message_delete(self, message: PublicMessage):
         """当频道的消息被删除时"""
         _log.info(f"频道消息 {message.content} 被删除")
+
+    async def on_message_update(self, message):
+        """当频道的消息被修改时"""
+        _log.info(f"频道消息 {message.content} 被修改")
