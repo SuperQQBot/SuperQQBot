@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from SuperQQBot import Token
-from SuperQQBot.core import logging
+from SuperQQBot import logging
 from tests import test_config
 
 logger = logging.get_logger()

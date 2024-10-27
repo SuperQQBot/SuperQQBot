@@ -1,5 +1,5 @@
 from .client import Intents
-from .. import Token
+from SuperQQBot import Token
 
 
 class Client:

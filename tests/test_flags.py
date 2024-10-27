@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
-from SuperQQBot.core import logging
+from SuperQQBot import logging
 from SuperQQBot import Intents
 from tests import test_config
 

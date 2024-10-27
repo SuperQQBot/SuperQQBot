@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
-from SuperQQBot.core import logging
+from SuperQQBot import logging
 from SuperQQBot import BotSendReceiveAPI, Token
 from tests import test_config
 
