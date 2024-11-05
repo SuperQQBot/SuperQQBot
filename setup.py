@@ -5,7 +5,7 @@ with open('readme.md', encoding='utf-8') as f:
 
 setup(
     name='SuperQQBot',
-    version='2024.10.27',  # 版本号应为标准格式，例如 '0.0.1'
+    version='2024.11.5',  # 版本号应为标准格式，例如 '0.0.1'
     packages=find_packages(where='SuperQQBot'),  # 自动查找所有包
     package_dir={'': 'SuperQQBot'},  # 指定包的根目录
     url='https://gitee.com/SuperQQBot/SuperQQBot',
@@ -29,10 +29,8 @@ setup(
     install_requires=[
         'asyncio~=3.4.3',
         'PyYAML~=6.0.2',
-        'websockets~=13.0.1',
         'python-dateutil~=2.9.0.post0',
         'requests~=2.32.3',
-        'setuptools~=75.1.0',
         'requests~=2.32.3',
         'charset-normalizer<4,>=2',
         'idna<4,>=2.5',
@@ -40,6 +38,7 @@ setup(
         'certifi>=2017.4.17',
         'pytz~=2024.2',
         'datetime~=5.5',
+        'bottle~=0.13.2'
     ],
     include_package_data=True,  # 包含包中的数据文件
     python_requires='>=3.8',  # 最低 Python 版本要求
