@@ -5,7 +5,7 @@ with open('readme.md', encoding='utf-8') as f:
 
 setup(
     name='SuperQQBot',
-    version='2024.11.5',  # 版本号应为标准格式，例如 '0.0.1'
+    version='2024.11.6',  # 版本号应为标准格式，例如 '0.0.1'
     packages=find_packages(where='SuperQQBot'),  # 自动查找所有包
     package_dir={'': 'SuperQQBot'},  # 指定包的根目录
     url='https://gitee.com/SuperQQBot/SuperQQBot',
