@@ -1,10 +1,12 @@
 import warnings
 from time import time
+from typing import Dict, List, Any
 
 from .types import *
 from . import Error, logging
 from .Error import WrongArgs, ParameterMappingFailed, CompatibilityWillBeUnSuppose, UsingBetaFunction
 from .connection import PostConnect, GetConnect, DeleteRequests, PutRequests, my_ipaddress
+from .. import Member
 
 _log = logging.get_logger()
 
@@ -208,16 +210,107 @@ class GuildManagementApi(BaseBotApi):
                 self.public_url)
             .json())
 
-    async def delete_channel(self, channel_id: str | int | Channel) -> None:
+    async def delete_channel(self,
+                             channel_id: str | int | Channel) -> None:
         """删除子频道
         :param channel_id: 子频道ID"""
         PostConnect(f"/channels/{channel_id}", self.access_token, {}, self.public_url).verify_data()
         return
+class GuildMemberApi(BaseBotApi):
+    def __init__(self,
+                 access_token: str,
+                 is_sandbox: bool = False):
+        super().__init__(access_token=access_token, is_sandbox=is_sandbox)
+    async def get_online_num(self,
+                             channel_id: str | int | Channel) -> Optional[int]:
+        """用于查询音视频/直播子频道 channel_id 的在线成员数。
+        :param channel_id: 子频道ID"""
+        try:
+            return int(GetConnect(f"/channels/{channel_id}/online_num",
+                              self.access_token, self.public_url).json()["online_nums"])
+        except TypeError:
+            return None
+    async def get_guild_member(self,
+                               guild_id: str | int | Guild,
+                               after: str = "0",
+                               limit: int = 1):
+        """用于获取 guild_id 指定的频道中所有成员的详情列表，支持分页。
+
+            注意
+
+                公域机器人暂不支持申请，仅私域机器人可用，选择私域机器人后默认开通。
+                注意: 开通后需要先将机器人从频道移除，然后重新添加，方可生效。
+        :param guild_id: 频道ID
+        :param after: 上一次回包中最后一个member的user id， 如果是第一次请求填 0，默认为 0
+        :param limit: 分页大小，1-400，默认是 1。成员较多的频道尽量使用较大的limit值，以减少请求数
+        注意：在每次翻页的过程中，可能会返回上一次请求已经返回过的member信息，需要调用方自己根据user id来进行去重。
+
+        每次返回的member数量与limit不一定完全相等。翻页请使用最后一个member的user id作为下一次请求的after参数，直到回包为空，拉取结束。"""
+        return [Member(**i) for i in GetConnect(f"/guilds/{guild_id}/members",self.access_token,
+                                                self.public_url, query={"after": after, "limit": limit}).json()]
+    async def get_role_member_list(self,
+                                   guild_id: str | int | Guild,
+                                   role_id: str | int,
+                                   start_index: str = "0",
+                                   limit: int = 1) -> dict[str, list[Member]]:
+        """用于获取 guild_id 频道中指定role_id身份组下所有成员的详情列表，支持分页。
+
+        注意
+
+            公域机器人暂不支持申请，仅私域机器人可用，选择私域机器人后默认开通。
+            注意: 开通后需要先将机器人从频道移除，然后重新添加，方可生效。
+        :param guild_id: 频道ID
+        :param role_id: 身份组ID
+        :param start_index: 将上一次回包中next填入， 如果是第一次请求填 0，默认为 0
+        :param limit: 分页大小，1-400，默认是 1。成员较多的频道尽量使用较大的limit值，以减少请求数
+        """
+        response = GetConnect(f"/guilds/{guild_id}/roles/{role_id}/members",
+                                                self.access_token,
+                                                self.public_url,
+                                                query={"start_index": start_index, "limit": limit}).json()
+        return {"data": [Member(**i) for i in response["data"]],
+                "next": response["next"]}
+    async def get_channel_members_details(self,
+                                          guild_id: str | int | Guild,
+                                          user_id: str) -> Member:
+        """用于获取 guild_id 指定的频道中 user_id 对应成员的详细信息。
+        :param guild_id: 频道ID
+        :param user_id: 用户ID
+        :return: Member类型的guild_id 指定的频道中 user_id 对应成员的详细信息"""
+        return Member(**GetConnect(f"/guilds/{guild_id}/members/{user_id}",
+                                    self.access_token,
+                                    self.public_url).json())
+    async def delete_channel_member(self,
+                                    guild_id: str | int | Guild,
+                                    user_id: str | int | User,
+                                    add_blacklist: bool = False,
+                                    delete_history_msg_days: int = 0) -> None:
+        """用于删除 guild_id 指定的频道下的成员 user_id。
+
+            需要使用的 token 对应的用户具备踢人权限。如果是机器人，要求被添加为管理员。
+            操作成功后，会触发频道成员删除事件。
+            无法移除身份为管理员的成员
+            注意
+
+                公域机器人暂不支持申请，仅私域机器人可用，选择私域机器人后默认开通。
+                注意: 开通后需要先将机器人从频道移除，然后重新添加，方可生效。
+        :param guild_id: 频道ID
+        :param user_id: 用户ID
+        :param add_blacklist: 删除成员的同时，将该用户添加到频道黑名单中
+        :param delete_history_msg_days: 删除成员的同时，撤回该成员的消息，可以指定撤回消息的时间范围（消息撤回时间范围仅支持固定的天数：3，7，15，30。 特殊的时间范围：-1: 撤回全部消息。默认值为0不撤回任何消息。）"""
+        if delete_history_msg_days not in [3, 7, 15, 30, -1, 0]:
+            raise UnknownKwargs("delete_history_msg_days", [3, 7, 15, 30, -1, 0], delete_history_msg_days)
+        return DeleteRequests(f"/guilds/{guild_id}/members/{user_id}",
+                              self.access_token,
+                              self.public_url,
+                              headers={"add_blacklist": add_blacklist, "delete_history_msg_days": delete_history_msg_days}).json()
 
 
 # 消息相关API
 class MessageSendReceiveAPI(BaseBotApi):
-    def __init__(self, access_token: str, is_sandbox: bool = False):
+    def __init__(self,
+                 access_token: str,
+                 is_sandbox: bool = False):
         super().__init__(access_token=access_token, is_sandbox=is_sandbox)
 
     async def post_dms(self,
@@ -478,7 +571,11 @@ class MessageSendReceiveAPI(BaseBotApi):
         response = PostConnect(f"/v2/users/{openid}/files", self.access_token, data, self.public_url)
         return MediaInfo(**response.json())
 
-    async def post_group_file(self, group_openid: str, file_type: FileType, url: str, srv_send_msg: bool,
+    async def post_group_file(self,
+                              group_openid: str,
+                              file_type: FileType,
+                              url: str,
+                              srv_send_msg: bool,
                               file_data: Optional[Any] = None) -> MediaInfo:
         """
         用于群聊的富媒体消息上传和发送
@@ -501,19 +598,26 @@ class MessageSendReceiveAPI(BaseBotApi):
         response = PostConnect(f"/v2/groups/{group_openid}/files", self.access_token, data, self.public_url)
         return MediaInfo(**response.json())
 
-    async def recall_c2c_message(self, openid: str, message_id: str):
+    async def recall_c2c_message(self,
+                                 openid: str,
+                                 message_id: str):
         """用于撤回机器人发送给当前用户 openid 的消息 message_id，发送超出2分钟的消息不可撤回
         :param openid: QQ 用户的 openid
         :param message_id: 消息ID"""
         return DeleteRequests(f"/v2/users/{openid}/messages/{message_id}", self.access_token, self.public_url)
 
-    async def recall_group_message(self, group_openid: str, message_id: str):
+    async def recall_group_message(self,
+                                   group_openid: str,
+                                   message_id: str):
         """用于撤回机器人发送在当前群 group_openid 的消息 message_id，发送超出2分钟的消息不可撤回
         :param group_openid: 群聊的额 openid
         :param message_id: 消息ID"""
         return DeleteRequests(f"/v2/groups/{group_openid}/messages/{message_id}", self.access_token, self.public_url)
 
-    async def recall_channel_message(self, channel_id: str, message_id: str, hidetip: bool = False):
+    async def recall_channel_message(self,
+                                     channel_id: str,
+                                     message_id: str,
+                                     hidetip: bool = False):
         """用于撤回子频道 channel_id 下的消息 message_id
 
         管理员可以撤回普通成员的消息。
@@ -527,7 +631,10 @@ class MessageSendReceiveAPI(BaseBotApi):
         return DeleteRequests(f"/channels/{channel_id}/messages/{message_id}?hidetip={hidetip}", self.access_token,
                               self.public_url)
 
-    async def recall_dms_message(self, guild_id: str, message_id: str, hidetip: bool = False):
+    async def recall_dms_message(self,
+                                 guild_id: str,
+                                 message_id: str,
+                                 hidetip: bool = False):
         """用于撤回私信频道 guild_id 中 message_id 指定的私信消息。只能用于撤回机器人自己发送的私信。
 
                 管理员可以撤回普通成员的消息。
@@ -546,30 +653,60 @@ class MessageExpressionInteraction(BaseBotApi):
     def __init__(self, access_token: str, is_sandbox: bool = False):
         super().__init__(access_token=access_token, is_sandbox=is_sandbox)
 
-    async def send_reaction_expression(self, channel_id: str, message_id: str, Emoji: Emoji):
+    async def send_reaction_expression(self,
+                                       channel_id: str,
+                                       message_id: str,
+                                       emoji: Emoji):
         """
         对消息 message_id 进行表情表态
         :param channel_id: 子频道ID
         :param message_id: 消息ID
-        :param Emoji: 包含type（表情类型）和id（表情ID）的Emoji对象
+        :param emoji: 包含type（表情类型）和id（表情ID）的Emoji对象
         """
-        return PutRequests(f"/channels/{channel_id}/messages/{message_id}/reactions/{Emoji.type}/{Emoji.id}",
+        return PutRequests(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
                            self.access_token, self.public_url)
 
-    async def delete_reaction_expression(self, channel_id: str, message_id: str, Emoji: Emoji):
-        return DeleteRequests(f"/channels/{channel_id}/messages/{message_id}/reactions/{Emoji.type}/{Emoji.id}",
+    async def delete_reaction_expression(self,
+                                         channel_id: str,
+                                         message_id: str,
+                                         emoji: Emoji):
+        """删除自己对消息 message_id 的表情表态
+        :param channel_id: 子频道ID
+        :param message_id: 消息ID
+        :param emoji: Emoji类型，包含了type和id"""
+        return DeleteRequests(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
                               self.access_token, self.public_url)
 
-    async def get_reaction_users(self, channel_id: str, message_id: str, Emoji: Emoji):
-        response = GetConnect(f"/channels/{channel_id}/messages/{message_id}/reactions/{Emoji.type}/{Emoji.id}",
-                              self.access_token, self.public_url).json()
+    async def get_reaction_users(self,
+                                 channel_id: str,
+                                 message_id: str,
+                                 emoji: Emoji,
+                                 cookie: Optional[str] = None,
+                                 limit: int = 20) -> Reaction:
+        """拉取对消息 message_id 指定表情表态的用户列表
+        :param channel_id: 子频道ID
+        :param message_id: 消息ID
+        :param emoji: Emoji类型，
+        :param cookie: 上次请求返回的cookie，第一次请求无需填写
+        :param limit: 每次拉取数量，默认20，最多50，只在第一次请求时设置
+        :return: 包含消息 message_id 指定表情表态的用户列表的Reaction类型"""
+        if limit > 50 or limit < 1:
+            raise UnknownKwargs("limit", "20和50间", limit)
+        response = GetConnect(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
+                              self.access_token, self.public_url, query={"cookie": cookie, "limit": limit}).json()
         return Reaction(
             users=[User(id=user["id"], username=user["username"], avatar=user["avatar"]) for user in response["users"]],
             cookie=response["cookie"], is_end=response["is_end"])
 
 
-class BotAPI(WebSocketAPI, GuildManagementApi, MessageSendReceiveAPI, MessageExpressionInteraction):
+class BotAPI(WebSocketAPI,
+             GuildManagementApi,
+             MessageSendReceiveAPI,
+             MessageExpressionInteraction,
+             GuildMemberApi):
     """便于用户快速调用所有API，这是一个通用接口"""
 
-    def __init__(self, access_token: str, is_sandbox: bool = False):
+    def __init__(self,
+                 access_token: str,
+                 is_sandbox: bool = False):
         super().__init__(access_token=access_token, is_sandbox=is_sandbox)

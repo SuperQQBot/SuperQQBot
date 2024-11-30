@@ -1,5 +1,6 @@
 import datetime
 from json import dumps
+from typing import Optional
 
 from requests import post, get, JSONDecodeError, delete, put
 
@@ -91,8 +92,10 @@ class PostConnect(BaseConnect):
 
 
 class GetConnect(BaseConnect):
-    def __init__(self, function: str, access_token: str, url: str | bool = False):
+    def __init__(self, function: str, access_token: str, url: str | bool = False, query: Optional[dict] = None):
         super().__init__(url=url, function=function, access_token=access_token)
+        if query is not None:
+            self.url += "?" + "&".join([f"{key}={value}" for key, value in query.items()])
         self.response = get(url=self.url,
                             headers={'Content-Type': 'application/json',
                                      'Authorization': get_authorization(self.access_token)})
@@ -100,11 +103,12 @@ class GetConnect(BaseConnect):
 
 
 class DeleteRequests(BaseConnect):
-    def __init__(self, function: str, access_token: str, url: str | bool = False):
+    def __init__(self, function: str, access_token: str, url: str | bool = False, headers: Optional[dict] = None):
         super().__init__(url=url, function=function, access_token=access_token)
         self.response = delete(url=self.url,
                                headers={'Content-Type': 'application/json',
-                                        'Authorization': get_authorization(self.access_token)})
+                                        'Authorization': get_authorization(self.access_token),
+                                        **headers})
         self.text = self.response.text
 
 

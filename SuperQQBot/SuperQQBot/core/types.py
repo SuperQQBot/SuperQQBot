@@ -49,6 +49,8 @@ class Channel:
     parent_id: Optional[str] = None
     op_user_id: Optional[str] = None
     private_user_ids: List[Optional[str]] = None
+    def __str__(self):
+        return self.id
 
 
 # 定义用户对象
@@ -76,6 +78,8 @@ class Guild:
     max_members: int
     joined_at: str
     owner: bool
+    def __str__(self):
+        return self.id
 
 
 # 定义成员对象
