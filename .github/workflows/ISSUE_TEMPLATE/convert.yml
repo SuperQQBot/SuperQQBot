@@ -8,4 +8,4 @@ body:
     label: 确认此问题未知
     description: 我已确认在[已知问题列表](https://gitee.com/SuperQQBot/SuperQQBot/wikis/迁移指南/已知问题/)上没有给出解决方案
     options:
-    - label: "我已确认"
+        - label: "我已确认"
