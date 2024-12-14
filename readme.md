@@ -13,6 +13,8 @@ _✨ 基于 [机器人开放平台API](https://bot.q.qq.com/wiki/develop/api/) �
 
 _✨ 为开发者提供一个易使用、开发效率高地开发框架 ✨_
 </div>
+# 来自官方机器人SDK？
+[直接前往查看迁移方式](https://gitee.com/SuperQQBot/SuperQQBot/wikis/附录/迁移指南)
 
 # 新一代QQ机器人SDK框架
 
