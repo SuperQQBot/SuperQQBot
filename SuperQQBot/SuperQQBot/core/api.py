@@ -1,6 +1,6 @@
 import warnings
 from time import time
-from typing import Dict, List, Any
+from typing import List
 
 from .types import *
 from . import Error, logging
@@ -24,34 +24,38 @@ class Token:
     def validate_access_token(self) -> bool:
         return self.access_token is not None and self.active_time is not None
 
-    def get_access_token(self) -> str:
+    async def get_access_token(self) -> str:
         if not self.validate_access_token():
             raise Error.UnknownAccessToken()
         elif not self.is_access_token_activity():
-            return self.renew_access_token()
+            return await self.renew_access_token()
         else:
             return self.access_token
 
     def is_access_token_activity(self) -> bool:
         return time() - self.start < self.active_time
 
-    def renew_access_token(self):
+    async def renew_access_token(self):
         self.start = time()
-        response = PostConnect(function="/app/getAppAccessToken", access_token="",
-                               json={"appId": self.appId, "clientSecret": self.client_secret},
-                               url="https://bots.qq.com")
-        if response.is_error():
-            if response.error_code() == 100007:
+        post_connect = PostConnect(
+            url="https://bots.qq.com",
+            function="/app/getAppAccessToken",
+            access_token=self.access_token,
+            json={"appId": self.appId, "clientSecret": self.client_secret}
+        )  # 创建 PostConnect 实例并传递所有必要的参数
+        await post_connect.apply()
+        if post_connect.is_error():
+            if post_connect.error_code() == 100007:
                 raise Error.UnknownAppId(self.appId)
-            elif response.error_reason() == "internal err":
-                raise Error.IPNotInWhiteList(ipaddress=my_ipaddress())
-            elif response.error_reason() == 'invalid appid or secret':
+            elif post_connect.error_reason() == "internal err":
+                raise Error.IPNotInWhiteList(ipaddress=await my_ipaddress())
+            elif post_connect.error_reason() == 'invalid appid or secret':
                 raise Error.AppIdAndSecretDoNotMatch()
             else:
-                raise Error.UnknownError(response.text)
+                raise Error.UnknownError(post_connect.text)
 
         else:
-            response = response.json()
+            response = post_connect.json()
             try:
                 self.access_token = response["access_token"]
                 self.active_time = int(response["expires_in"])
@@ -79,8 +83,9 @@ class WebSocketAPI(BaseBotApi):
         super().__init__(access_token=access_token, is_sandbox=is_sandbox)
 
     async def get_wss_url(self) -> str:
-        response = GetConnect("/gateway", self.access_token, self.public_url).json()
-        return response["url"]
+        get_connect = GetConnect("/gateway", self.access_token, self.public_url)
+        await get_connect.apply()
+        return get_connect.json()["url"]
 
 
 # 频道模块API
@@ -95,8 +100,9 @@ class GuildManagementApi(BaseBotApi):
         :param guild_id: 频道ID
         :rtype: Guild
         :return: guild_id 指定的频道的详情。"""
-        response = GetConnect(f"/guilds/{guild_id}", self.access_token, self.public_url).json()
-        return Guild(**response)
+        get_connect = GetConnect(f"/guilds/{guild_id}", self.access_token, self.public_url)
+        await get_connect.apply()
+        return Guild(**get_connect.json())
 
     async def get_channels(self, guild_id: str | int) -> List[Channel]:
         """获取子频道列表
@@ -104,25 +110,28 @@ class GuildManagementApi(BaseBotApi):
         :rtype: List[Channel]
         :return: guild_id 指定的频道下的子频道列表。"""
         output = []
-        response = GetConnect(f"/guilds/{guild_id}/channels", self.access_token, self.public_url).json()
-        for i in response:
+        get_connect = GetConnect(f"/guilds/{guild_id}/channels", self.access_token, self.public_url)
+        await get_connect.apply()
+        for i in get_connect.json():
             output.append(Channel(**i))
         return output
 
-    def me(self) -> User:
+    async def me(self) -> User:
         """获取用户详情。
         :rtype: User
         :return: 当前用户（机器人）详细"""
-        response = GetConnect("/users/@me", self.access_token, self.public_url).json()
-        return User(**response)
+        get_connect = GetConnect("/users/@me", self.access_token, self.public_url)
+        await get_connect.apply()
+        return User(**get_connect.json())
 
     async def me_guilds(self) -> List[Guild]:
         """获取用户频道列表
         :return: 当前用户（机器人）所加入的频道列表
         :rtype: List[Guild}"""
         output = []
-        response = GetConnect("/users/@me/guilds", self.access_token, self.public_url).json()
-        for i in response:
+        get_connect = GetConnect("/users/@me/guilds", self.access_token, self.public_url)
+        await get_connect.apply()
+        for i in get_connect.json():
             output.append(Guild(**i))
         return output
 
@@ -131,8 +140,9 @@ class GuildManagementApi(BaseBotApi):
         :param channel_id: 子频道ID
         :rtype: Channel
         :return: channel_id 指定的子频道的详情。"""
-        response = GetConnect(f"/channels/{channel_id}", self.access_token, self.public_url).json()
-        return Channel(**response)
+        get_connect = GetConnect(f"/channels/{channel_id}", self.access_token, self.public_url)
+        await get_connect.apply()
+        return Channel(**get_connect.json())
 
     async def create_channel(self,
                              guild_id: str | int | Guild,
@@ -172,7 +182,9 @@ class GuildManagementApi(BaseBotApi):
             "speak_permission": speak_permission,
             "application_id": application_id
         }
-        return Channel(**PostConnect(f"/guilds/{guild_id}/channels", self.access_token, data, self.public_url).json())
+        post_connect = PostConnect(f"/guilds/{guild_id}/channels", self.access_token, data, self.public_url)
+        await post_connect.apply()
+        return Channel(**post_connect.json())
 
     async def update_channel(self,
                              channel_id: str | int | Channel,
@@ -203,18 +215,22 @@ class GuildManagementApi(BaseBotApi):
         else:
             raise (
                 WrongArgs("没有要修改的参数"))
-        return Channel(
-            **PostConnect(
+        get_connect = PostConnect(
                 f"/channels/{channel_id}",
                 self.access_token, data,
                 self.public_url)
+        await get_connect.apply()
+        return Channel(
+            **get_connect
             .json())
 
     async def delete_channel(self,
                              channel_id: str | int | Channel) -> None:
         """删除子频道
         :param channel_id: 子频道ID"""
-        PostConnect(f"/channels/{channel_id}", self.access_token, {}, self.public_url).verify_data()
+        delete_requests = DeleteRequests(f"/channels/{channel_id}", self.access_token, self.public_url)
+        await delete_requests.apply()
+        delete_requests.verify_data()
         return
 class GuildMemberApi(BaseBotApi):
     def __init__(self,
@@ -226,8 +242,10 @@ class GuildMemberApi(BaseBotApi):
         """用于查询音视频/直播子频道 channel_id 的在线成员数。
         :param channel_id: 子频道ID"""
         try:
-            return int(GetConnect(f"/channels/{channel_id}/online_num",
-                              self.access_token, self.public_url).json()["online_nums"])
+            get_connect = GetConnect(f"/channels/{channel_id}/online_num",
+                       self.access_token, self.public_url)
+            await get_connect.apply()
+            return int(get_connect.json()["online_nums"])
         except TypeError:
             return None
     async def get_guild_member(self,
@@ -246,8 +264,10 @@ class GuildMemberApi(BaseBotApi):
         注意：在每次翻页的过程中，可能会返回上一次请求已经返回过的member信息，需要调用方自己根据user id来进行去重。
 
         每次返回的member数量与limit不一定完全相等。翻页请使用最后一个member的user id作为下一次请求的after参数，直到回包为空，拉取结束。"""
-        return [Member(**i) for i in GetConnect(f"/guilds/{guild_id}/members",self.access_token,
-                                                self.public_url, query={"after": after, "limit": limit}).json()]
+        get_connect = GetConnect(f"/guilds/{guild_id}/members",self.access_token,
+                                                self.public_url, query={"after": after, "limit": limit})
+        await get_connect.apply()
+        return [Member(**i) for i in get_connect.json()]
     async def get_role_member_list(self,
                                    guild_id: str | int | Guild,
                                    role_id: str | int,
@@ -264,12 +284,13 @@ class GuildMemberApi(BaseBotApi):
         :param start_index: 将上一次回包中next填入， 如果是第一次请求填 0，默认为 0
         :param limit: 分页大小，1-400，默认是 1。成员较多的频道尽量使用较大的limit值，以减少请求数
         """
-        response = GetConnect(f"/guilds/{guild_id}/roles/{role_id}/members",
+        get_connect = GetConnect(f"/guilds/{guild_id}/roles/{role_id}/members",
                                                 self.access_token,
                                                 self.public_url,
-                                                query={"start_index": start_index, "limit": limit}).json()
-        return {"data": [Member(**i) for i in response["data"]],
-                "next": response["next"]}
+                                                query={"start_index": start_index, "limit": limit})
+        await get_connect.apply()
+        return {"data": [Member(**i) for i in get_connect.json()["data"]],
+                "next": get_connect.json()["next"]}
     async def get_channel_members_details(self,
                                           guild_id: str | int | Guild,
                                           user_id: str) -> Member:
@@ -277,9 +298,11 @@ class GuildMemberApi(BaseBotApi):
         :param guild_id: 频道ID
         :param user_id: 用户ID
         :return: Member类型的guild_id 指定的频道中 user_id 对应成员的详细信息"""
-        return Member(**GetConnect(f"/guilds/{guild_id}/members/{user_id}",
-                                    self.access_token,
-                                    self.public_url).json())
+        get_connect = GetConnect(f"/guilds/{guild_id}/members/{user_id}",
+                   self.access_token,
+                   self.public_url)
+        await get_connect.apply()
+        return Member(**get_connect.json())
     async def delete_channel_member(self,
                                     guild_id: str | int | Guild,
                                     user_id: str | int | User,
@@ -300,10 +323,12 @@ class GuildMemberApi(BaseBotApi):
         :param delete_history_msg_days: 删除成员的同时，撤回该成员的消息，可以指定撤回消息的时间范围（消息撤回时间范围仅支持固定的天数：3，7，15，30。 特殊的时间范围：-1: 撤回全部消息。默认值为0不撤回任何消息。）"""
         if delete_history_msg_days not in [3, 7, 15, 30, -1, 0]:
             raise UnknownKwargs("delete_history_msg_days", [3, 7, 15, 30, -1, 0], delete_history_msg_days)
-        return DeleteRequests(f"/guilds/{guild_id}/members/{user_id}",
-                              self.access_token,
-                              self.public_url,
-                              headers={"add_blacklist": add_blacklist, "delete_history_msg_days": delete_history_msg_days}).json()
+        delete_requests = DeleteRequests(f"/guilds/{guild_id}/members/{user_id}",
+                                          self.access_token,
+                                          self.public_url)
+        await delete_requests.apply()
+        delete_requests.verify_data()
+        return
 
 
 # 消息相关API
@@ -368,12 +393,14 @@ class MessageSendReceiveAPI(BaseBotApi):
                 data["ark"] = ark.to_dict()
             elif msg_type == 4:
                 data["media"] = media.to_dict()
+        post_connect = PostConnect(f"/v2/users/{openid}/messages", self.access_token, data, self.public_url)
+        await post_connect.apply()
         return C2CMessageInfo(
-            **PostConnect(f"/v2/users/{openid}/messages", self.access_token, data, self.public_url).json())
+            **post_connect.json())
 
     async def post_channel_messages(self,
                                     channel_id: str | int | Channel,
-                                    embed: Optional[MessageEmbed] = None,
+                                    embed: Optional[Embed] = None,
                                     content: str | None = None,
                                     makedown: MakeDown | None = None,
                                     ark: Ark | None = None,
@@ -418,12 +445,12 @@ class MessageSendReceiveAPI(BaseBotApi):
             if mention_everyone:
                 (warnings
                  .warn(UsingBetaFunction("mention_everyone")))
-            if "@everyone" in content:
+            """if "@everyone" in content:
                 (warnings
-                 .warn(CompatibilityWillBeUnSuppose('@everyone', '<qqbot-at-everyone />')))
-            elif "<@" in content:
+                 .warn(CompatibilityWillBeUnSuppose('@everyone', '<qqbot-at-everyone />')))"""
+            """elif "<@" in content:
                 (warnings
-                 .warn(CompatibilityWillBeUnSuppose('<@userid>', '<qqbot-at-user id="" />')))
+                 .warn(CompatibilityWillBeUnSuppose('<@userid>', '<qqbot-at-user id="" />')))"""
             if image is not None:
                 data["image"] = image
             if content is not None:
@@ -450,7 +477,9 @@ class MessageSendReceiveAPI(BaseBotApi):
                 data = {
                     "content": "<qqbot-at-everyone /> " + content
                 }
-        response = PostConnect(f"/channels/{channel_id}/messages", self.access_token, data, self.public_url).json()
+        post_connect = PostConnect(f"/channels/{channel_id}/messages", self.access_token, data, self.public_url)
+        await post_connect.apply()
+        response = post_connect.json()
         return ChannelMessageInfo(
             id=response["id"],
             channel_id=response["channel_id"],
@@ -544,9 +573,10 @@ class MessageSendReceiveAPI(BaseBotApi):
             data["msg_id"] = msg_id
         if msg_seq is not None:
             data["msg_seq"] = msg_seq
-        response = PostConnect(f"/v2/groups/{group_openid}/messages", self.access_token, data,
-                               self.public_url).json()
-        return GroupMessageInfo(id=response["id"], timestamp=response["timestamp"])
+        post_connect = PostConnect(f"/v2/groups/{group_openid}/messages", self.access_token, data,
+                               self.public_url)
+        await post_connect.apply()
+        return GroupMessageInfo(id=post_connect.json()["id"], timestamp=post_connect.json()["timestamp"])
 
     async def post_c2c_file(self, openid: str, file_type: FileType, url: str, srv_send_msg: bool,
                             file_data: Optional[Any] = None) -> MediaInfo:
@@ -568,8 +598,9 @@ class MessageSendReceiveAPI(BaseBotApi):
             "srv_send_msg": srv_send_msg
         }
 
-        response = PostConnect(f"/v2/users/{openid}/files", self.access_token, data, self.public_url)
-        return MediaInfo(**response.json())
+        post_connect = PostConnect(f"/v2/users/{openid}/files", self.access_token, data, self.public_url)
+        await post_connect.apply()
+        return MediaInfo(**post_connect.json())
 
     async def post_group_file(self,
                               group_openid: str,
@@ -595,8 +626,9 @@ class MessageSendReceiveAPI(BaseBotApi):
             "srv_send_msg": srv_send_msg
         }
 
-        response = PostConnect(f"/v2/groups/{group_openid}/files", self.access_token, data, self.public_url)
-        return MediaInfo(**response.json())
+        post_connect = PostConnect(f"/v2/groups/{group_openid}/files", self.access_token, data, self.public_url)
+        await post_connect.apply()
+        return MediaInfo(**post_connect.json())
 
     async def recall_c2c_message(self,
                                  openid: str,
@@ -604,7 +636,10 @@ class MessageSendReceiveAPI(BaseBotApi):
         """用于撤回机器人发送给当前用户 openid 的消息 message_id，发送超出2分钟的消息不可撤回
         :param openid: QQ 用户的 openid
         :param message_id: 消息ID"""
-        return DeleteRequests(f"/v2/users/{openid}/messages/{message_id}", self.access_token, self.public_url)
+        delete_requests = DeleteRequests(f"/v2/users/{openid}/messages/{message_id}", self.access_token, self.public_url)
+        await delete_requests.apply()
+        delete_requests.verify_data()
+        return
 
     async def recall_group_message(self,
                                    group_openid: str,
@@ -612,7 +647,11 @@ class MessageSendReceiveAPI(BaseBotApi):
         """用于撤回机器人发送在当前群 group_openid 的消息 message_id，发送超出2分钟的消息不可撤回
         :param group_openid: 群聊的额 openid
         :param message_id: 消息ID"""
-        return DeleteRequests(f"/v2/groups/{group_openid}/messages/{message_id}", self.access_token, self.public_url)
+        delete_requrests = DeleteRequests(f"/v2/groups/{group_openid}/messages/{message_id}", self.access_token,
+                                            self.public_url)
+        await delete_requrests.apply()
+        delete_requrests.verify_data()
+        return
 
     async def recall_channel_message(self,
                                      channel_id: str,
@@ -628,8 +667,11 @@ class MessageSendReceiveAPI(BaseBotApi):
         :param channel_id: 频道的 openid
         :param message_id: 消息ID
         :param hidetip: 选填，是否隐藏提示小灰条，true 为隐藏，false 为显示。默认为false"""
-        return DeleteRequests(f"/channels/{channel_id}/messages/{message_id}?hidetip={hidetip}", self.access_token,
-                              self.public_url)
+        delete_requests = DeleteRequests(f"/channels/{channel_id}/messages/{message_id}?hidetip={hidetip}",
+                                            self.access_token, self.public_url)
+        await delete_requests.apply()
+        delete_requests.verify_data()
+        return
 
     async def recall_dms_message(self,
                                  guild_id: str,
@@ -645,8 +687,11 @@ class MessageSendReceiveAPI(BaseBotApi):
                 :param guild_id: 私信的 openid
                 :param message_id: 消息ID
                 :param hidetip: 选填，是否隐藏提示小灰条，true 为隐藏，false 为显示。默认为false"""
-        return DeleteRequests(f"/dms/{guild_id}/messages/{message_id}?hidetip={hidetip}", self.access_token,
-                              self.public_url)
+        delete_requests = DeleteRequests(f"/dms/{guild_id}/messages/{message_id}?hidetip={hidetip}",
+                                            self.access_token, self.public_url)
+        await delete_requests.apply()
+        delete_requests.verify_data()
+        return
 
 
 class MessageExpressionInteraction(BaseBotApi):
@@ -663,8 +708,10 @@ class MessageExpressionInteraction(BaseBotApi):
         :param message_id: 消息ID
         :param emoji: 包含type（表情类型）和id（表情ID）的Emoji对象
         """
-        return PutRequests(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
+        put_requests = PutRequests(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
                            self.access_token, self.public_url)
+        await put_requests.apply()
+        return
 
     async def delete_reaction_expression(self,
                                          channel_id: str,
@@ -674,8 +721,10 @@ class MessageExpressionInteraction(BaseBotApi):
         :param channel_id: 子频道ID
         :param message_id: 消息ID
         :param emoji: Emoji类型，包含了type和id"""
-        return DeleteRequests(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
+        delete_requests = DeleteRequests(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
                               self.access_token, self.public_url)
+        await delete_requests.apply()
+        return
 
     async def get_reaction_users(self,
                                  channel_id: str,
@@ -692,8 +741,10 @@ class MessageExpressionInteraction(BaseBotApi):
         :return: 包含消息 message_id 指定表情表态的用户列表的Reaction类型"""
         if limit > 50 or limit < 1:
             raise UnknownKwargs("limit", "20和50间", limit)
-        response = GetConnect(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
-                              self.access_token, self.public_url, query={"cookie": cookie, "limit": limit}).json()
+        get_connect = GetConnect(f"/channels/{channel_id}/messages/{message_id}/reactions/{emoji.type}/{emoji.id}",
+                              self.access_token, self.public_url, query={"cookie": cookie, "limit": limit})
+        await get_connect.apply()
+        response = get_connect.json()
         return Reaction(
             users=[User(id=user["id"], username=user["username"], avatar=user["avatar"]) for user in response["users"]],
             cookie=response["cookie"], is_end=response["is_end"])
