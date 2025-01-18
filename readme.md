@@ -59,6 +59,10 @@ SuperQQBot是一个基于Python开发的新一代QQ机器人SDK框架，遵循�
 
 ## 3. 用法
 ### PIP工具安装（由于国内镜像源更新缓慢，推荐使用官方接口）
+#### 官方接口安装（官方服务器，目前测试可用）
+```bash
+pip install --index-url https://git.superqqbot.us.kg/api/packages/Supercmd/pypi/simple/ SuperQQBot
+```
 #### 直接安装（如果配置了镜像可能下到旧版本）
 ```bash
 pip install SuperQQBot
