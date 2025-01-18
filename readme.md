@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://gitee.com/SuperQQBot/SuperQQBot/raw/master/Logo.png">
+<img src="https://static.superqqbot.us.kg/Logo.png">
 <h1>SuperQQBot</h1>
 
 [![Language](https://img.shields.io/badge/language-python-green.svg?style=plastic)](https://www.python.org/)
