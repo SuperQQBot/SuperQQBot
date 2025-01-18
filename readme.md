@@ -16,7 +16,8 @@ _✨ 为开发者提供一个易使用、开发效率高地开发框架 ✨_
 
 # 来自官方机器人SDK？
 ➡ [直接前往查看迁移方式](https://gitee.com/SuperQQBot/SuperQQBot/wikis/迁移指南/迁移指南) ⬅
-
+# 主仓库地址修改
+➡[新主仓库](https://git.superqqbot.us.kg/Supercmd/SuperQQBot/)⬅
 # 新一代QQ机器人SDK框架
 
 ## 1. 简介
@@ -109,6 +110,7 @@ pytest
 4. 机器人开发互助群：[点击链接加入群聊](https://qm.qq.com/q/POilUp1kUq)
 5. 邮箱：[给我发邮箱](mailto:trustedinster@outlook.com)
 6. Gitee组织：[加入SuperQQBot组织](https://gitee.com/SuperQQBot)
+7. 工单：[官方工单平台](https://git.superqqbot.us.kg/Supercmd/SuperQQBot/issues)
 
 ## 由于技术原因无法直接平替的用法
 
