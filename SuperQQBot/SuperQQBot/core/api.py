@@ -3,12 +3,12 @@ from time import time
 from typing import List
 
 from .types import *
-from . import Error, logging
+from . import Error, log
 from .Error import WrongArgs, ParameterMappingFailed, CompatibilityWillBeUnSuppose, UsingBetaFunction
 from .connection import PostConnect, GetConnect, DeleteRequests, PutRequests, my_ipaddress
 from .. import Member
 
-_log = logging.get_logger()
+_log = log.get_logger()
 
 
 # AccessToken类
@@ -400,7 +400,7 @@ class MessageSendReceiveAPI(BaseBotApi):
 
     async def post_channel_messages(self,
                                     channel_id: str | int | Channel,
-                                    embed: Optional[Embed] = None,
+                                    embed: Optional[MessageEmbed] = None,
                                     content: str | None = None,
                                     makedown: MakeDown | None = None,
                                     ark: Ark | None = None,

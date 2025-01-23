@@ -126,3 +126,17 @@ class UsingBetaFunction(Warning):
         self.beta_function_name = beta_function_name
     def __str__(self):
         return f"正在使用Beta功能：{self.beta_function_name}，这意味着此功能可能存在Bug，因此产生的事故或消息错误作者无法承担"
+class WebHookPortUnAvailable(Exception):
+    def __init__(self, port):
+        super().__init__(port)
+        self.port = port
+
+    def __str__(self):
+        return f"端口{self.port}目前不受官方支持，请更换端口"
+class UsingPortUnAvailable(Warning):
+    def __init__(self, port):
+        super().__init__(port)
+        self.port = port
+
+    def __str__(self):
+        return f"正在使用不受官方支持的端口{self.port}"

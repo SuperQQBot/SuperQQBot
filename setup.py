@@ -27,10 +27,8 @@ setup(
         'Programming Language :: Python :: 3.10',
     ],
     install_requires=[
-        'asyncio~=3.4.3',
         'PyYAML~=6.0.2',
         'python-dateutil~=2.9.0.post0',
-        'requests~=2.32.3',
         'requests~=2.32.3',
         'charset-normalizer<4,>=2',
         'idna<4,>=2.5',

@@ -9,7 +9,7 @@ from .api import MessageSendReceiveAPI
 from .Error import InvalidIntentsError, ExecutionSequenceError
 from .api import WebSocketAPI, Token, GuildManagementApi, BotAPI
 from .connection import get_authorization
-from .logging import get_logger
+from .log import get_logger
 from .types import *
 
 _log = get_logger()
