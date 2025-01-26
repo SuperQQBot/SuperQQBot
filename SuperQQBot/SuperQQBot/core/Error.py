@@ -140,3 +140,6 @@ class UsingPortUnAvailable(Warning):
 
     def __str__(self):
         return f"正在使用不受官方支持的端口{self.port}"
+class UnAuthenticated(Exception):
+    def __str__(self):
+        return "未认证的模组调用"

@@ -1,4 +1,5 @@
 import json
+import warnings
 from functools import partial
 
 import asyncio
@@ -100,6 +101,7 @@ class Intents:
 
 class Client:
     def __init__(self, intents, is_sandbox=False):
+        warnings.warn("WebSocket即将被官方抛弃，不建议继续使用")
         if not isinstance(intents, Intents):
             raise ValueError("intents 必须是 Intents 类型的对象。")
         self.intents = intents
